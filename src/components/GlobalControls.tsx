@@ -1,7 +1,7 @@
 import Slider from './Slider';
 import Toggle from './Toggle';
-import { RANGES, SEAT_PRICE, INDIVIDUAL_LIMIT_MAX_MULTIPLE, enterpriseLimitMaxUsd } from '../model/defaults';
-import { creditsToUsd, fmtCredits, fmtInt, fmtMultiplier, fmtPct, fmtUsd, usdToCredits } from '../model/format';
+import { RANGES, SEAT_PRICE, UNIVERSAL_ULB_MAX_MULTIPLE, enterpriseLimitMaxUsd } from '../model/defaults';
+import { creditsToUsd, fmtCredits, fmtInt, fmtPct, fmtUsd, usdToCredits } from '../model/format';
 import { useSimResult, useStore } from '../state/store';
 
 export default function GlobalControls() {
@@ -9,10 +9,10 @@ export default function GlobalControls() {
   const bizRatio = useStore((s) => s.inputs.bizRatio);
   const activePct = useStore((s) => s.inputs.activePct);
   const avgDevUsageCredits = useStore((s) => s.inputs.avgDevUsageCredits);
-  const powerRatio = useStore((s) => s.inputs.powerRatio);
-  const powerMultiplier = useStore((s) => s.inputs.powerMultiplier);
+  const powerUsers = useStore((s) => s.inputs.powerUsers);
+  const avgPowerUserBudgetUsd = useStore((s) => s.inputs.avgPowerUserBudgetUsd);
   const usageVariation = useStore((s) => s.inputs.usageVariation);
-  const individualLimitUsd = useStore((s) => s.inputs.individualLimitUsd);
+  const universalUlbUsd = useStore((s) => s.inputs.universalUlbUsd);
   const enterpriseLimitUsd = useStore((s) => s.inputs.enterpriseLimitUsd);
   const promo = useStore((s) => s.inputs.promo);
   const stopUsageBudgets = useStore((s) => s.inputs.stopUsageBudgets);
@@ -21,10 +21,13 @@ export default function GlobalControls() {
   const reshuffle = useStore((s) => s.reshuffle);
   const sim = useSimResult();
 
-  // Individual-limit slider max is derived live: 10 x the current average
-  // developer monthly usage (docs/formulas.md §2.1). Keep the current value in
-  // the max so the thumb stays usable if avg usage is lowered below it.
-  const individualLimitMax = creditsToUsd(avgDevUsageCredits) * INDIVIDUAL_LIMIT_MAX_MULTIPLE;
+  // Universal ULB slider max is derived live: 10 x the current average developer
+  // monthly usage (docs/formulas.md §2.1). Keep the current value in range so the
+  // thumb stays usable if avg usage is lowered below it.
+  const universalUlbMax = creditsToUsd(avgDevUsageCredits) * UNIVERSAL_ULB_MAX_MULTIPLE;
+
+  // "Number of power users" max = total users with licenses (dynamic).
+  const powerUsersMax = totalLicenses;
 
   // Enterprise-limit slider max scales with total users (licenses); it is a pure
   // function of totalLicenses, so it only changes when that changes. The current
@@ -84,32 +87,10 @@ export default function GlobalControls() {
             caption={`${fmtUsd(creditsToUsd(avgDevUsageCredits))}/mo per active developer`}
           />
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-            Actual consumption of a typical active developer; power users spend more (below). Range starts at one
-            Business seat&apos;s included credits.
+            Actual consumption of a typical active (normal) developer; power users are modeled separately
+            (below). Range starts at one Business seat&apos;s included credits.
           </div>
         </div>
-
-        <Slider
-          label="Power-user ratio"
-          value={powerRatio}
-          min={RANGES.powerRatio.min}
-          max={RANGES.powerRatio.max}
-          step={RANGES.powerRatio.step}
-          onChange={(v) => setInput('powerRatio', v)}
-          format={(v) => fmtPct(v)}
-          caption={`≈ ${fmtInt(Math.round(sim.activeUsers * powerRatio))} power users`}
-        />
-
-        <Slider
-          label="Power-user multiplier"
-          value={powerMultiplier}
-          min={RANGES.powerMultiplier.min}
-          max={RANGES.powerMultiplier.max}
-          step={RANGES.powerMultiplier.step}
-          onChange={(v) => setInput('powerMultiplier', v)}
-          format={fmtMultiplier}
-          caption={`power users ≈ ${fmtUsd(creditsToUsd(avgDevUsageCredits * powerMultiplier))}/mo`}
-        />
 
         <Slider
           label="Usage variation"
@@ -123,15 +104,48 @@ export default function GlobalControls() {
         />
 
         <Slider
-          label="Individual limit (per-user budget)"
-          value={individualLimitUsd}
-          min={RANGES.individualLimitUsd.min}
-          max={Math.max(individualLimitMax, individualLimitUsd)}
-          step={RANGES.individualLimitUsd.step}
-          onChange={(v) => setInput('individualLimitUsd', v)}
+          label="Universal user-level budget (ULB)"
+          value={universalUlbUsd}
+          min={RANGES.universalUlbUsd.min}
+          max={Math.max(universalUlbMax, universalUlbUsd)}
+          step={RANGES.universalUlbUsd.step}
+          onChange={(v) => setInput('universalUlbUsd', v)}
           format={(v) => fmtUsd(v)}
-          caption={`= ${fmtCredits(usdToCredits(individualLimitUsd))} per user · hard stop · max = 10× avg usage (${fmtUsd(individualLimitMax)})`}
+          caption={`= ${fmtCredits(usdToCredits(universalUlbUsd))} per user · hard stop · max = 10× avg usage (${fmtUsd(universalUlbMax)})`}
         />
+
+        <div
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: 12,
+            background: 'var(--panel-2)',
+            display: 'grid',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontWeight: 650 }}>Individual budget override for power-users</div>
+          <Slider
+            label="Number of power users"
+            value={powerUsers}
+            min={RANGES.powerUsers.min}
+            max={Math.max(powerUsersMax, powerUsers)}
+            step={RANGES.powerUsers.step}
+            onChange={(v) => setInput('powerUsers', v)}
+            format={fmtInt}
+            caption={`approx. ${totalLicenses > 0 ? Math.round((powerUsers / totalLicenses) * 100) : 0}% of users`}
+          />
+          <Slider
+            label="Average power-user budget"
+            value={avgPowerUserBudgetUsd}
+            min={RANGES.avgPowerUserBudgetUsd.min}
+            max={RANGES.avgPowerUserBudgetUsd.max}
+            step={RANGES.avgPowerUserBudgetUsd.step}
+            onChange={(v) => setInput('avgPowerUserBudgetUsd', v)}
+            format={(v) => fmtUsd(v)}
+            caption={`= ${fmtCredits(usdToCredits(avgPowerUserBudgetUsd))} per power user · individual override of the ULB`}
+          />
+        </div>
 
         <Slider
           label="Enterprise limit (metered budget)"

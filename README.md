@@ -21,7 +21,8 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | 1 credit = **$0.01** | Fixed AI-credit conversion |
 | Business **1,900 cr / $19**, Enterprise **3,900 cr / $39** per seat | Included allowance per seat (promo **3,000 / 7,000** until **Sep 1 2026**) |
 | Included pool | Credits **pooled at the enterprise level**, funded by all seats |
-| Individual limit | **User-level budget** — caps a person's *total* (pool + metered) use, **always hard-stops** |
+| Universal ULB (universal user-level budget) | **User-level budget** for normal users — caps a person's *total* (pool + metered) use, **always hard-stops** |
+| Power-user override (number of power users + average power-user budget) | **Individual budget override** — power users get a higher per-user budget that overrides the universal ULB ([power-user override guidance](https://docs.github.com/en/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides)) |
 | Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
 | Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
@@ -33,7 +34,7 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 ## Inputs
 
-**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), power-user ratio, power-user multiplier (2×–5×), **usage variation**, individual limit ($; default = avg usage, max = 10× avg usage), enterprise limit (absolute USD metered budget; max scales with total users), promo-allowances toggle, stop-usage toggle.
+**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), promo-allowances toggle, stop-usage toggle.
 
 **Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an included-usage cap (block/overage).
 

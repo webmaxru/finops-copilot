@@ -30,14 +30,18 @@ $L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathr
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), budget multiple (inherit or own $k_{cc}$), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
-### 2.1 Individual limit derived from average developer usage — `defaults.ts` (`DEFAULT_INDIVIDUAL_LIMIT_USD`, `INDIVIDUAL_LIMIT_MAX_MULTIPLE`), UI max in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
+### 2.1 Universal ULB & power-user budget — `defaults.ts` (`DEFAULT_UNIVERSAL_ULB_USD`, `UNIVERSAL_ULB_MAX_MULTIPLE`, `DEFAULT_POWER_USER_BUDGET_USD`, `POWER_USER_BUDGET_MIN/MAX_USD`), UI in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
 
-The universal per-user limit $B_{\text{ind}}$ is derived from the average developer monthly usage $\bar u$ (credits), converted to USD via $c$:
+**Universal user-level budget (ULB)** $B_{\text{ind}}$ — the per-user limit for **normal** users — is derived from the average developer monthly usage $\bar u$ (credits), converted to USD via $c$:
 $$B_{\text{ind}}^{\text{default}} = \bar u \cdot c, \qquad B_{\text{ind}}^{\max} = 10\,(\bar u \cdot c)$$
 - **Default** (initial value / on reset) uses the default $\bar u$: $5000\cdot\$0.01=\$50$.
-- **Slider max** tracks the **current** avg-usage slider live: $10\times(\bar u\cdot c)$; at defaults $=\$500$. If $\bar u$ is lowered below the current limit, the UI keeps the current value in range so the thumb stays usable (same pattern as cost-center members, §9).
+- **Slider max** tracks the **current** avg-usage slider live: $10\times(\bar u\cdot c)$; at defaults $=\$500$. If $\bar u$ is lowered below the current value, the UI keeps it in range so the thumb stays usable (§9).
 
-This is a modeling choice — GitHub has no formula for a per-user budget amount; it only requires that user-level budgets hard-stop total consumption [B4].
+**Power-user individual budget** $B_{\text{pow}}$ = `avgPowerUserBudget` — a power user's modeled consumption **and** their per-user limit, overriding the ULB [B16]. Bounds/default are multiples of the Copilot Business seat price $p_B=\$19$:
+$$B_{\text{pow}}^{\min}=2p_B=\$38,\qquad B_{\text{pow}}^{\max}=40p_B=\$760,\qquad B_{\text{pow}}^{\text{default}}=10p_B=\$190$$
+The **number of power users** is an absolute count on $[0,\ L]$ (max = total users, dynamic), default $\lfloor 0.1\,L\rceil = 10$; the power-user share is $\phi=\text{powerUsers}/L$ (§4).
+
+GitHub has no formula for a per-user budget *amount*; it documents *that* you set higher individual overrides for power users [B16] and that user-level budgets hard-stop total consumption [B4]. The specific amounts here are modeling choices.
 
 ### 2.2 Provenance of every configurable value — min · max · default
 
@@ -51,11 +55,11 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 | Business share $\rho_B$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | assumed 70/30 Business:Enterprise mix |
 | Active % $\alpha$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.80 · **A** | assumed 80% of seats active |
 | Avg dev usage $\bar u$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | 5,000 cr ($50) · **A** | min = one Business seat's included credits [B1]; max $=10\times$ min (10× is **A**, base [B1]); default chosen (doubled from 2,500 on request) |
-| Power ratio $\phi$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.20 · **A** | assumed 20% power users |
-| Power multiplier $m$ | 2 · **A** | 5 · **A** | 3 · **A** | chosen range & default |
+| Number of power users | 0 · **A** | $L$ (total users) · **Calc** | $\lfloor 0.1L\rceil$ = 10 · **A** | §2.1: max = total users (dynamic); default = 10% of total users |
+| Average power-user budget $B_{\text{pow}}$ | $38 = 2p_B · **Calc** | $760 = 40p_B · **Calc** | $190 = 10p_B · **Calc** | §2.1: multiples of the Business seat price $p_B=\$19$ [B3] (the 2×/40×/10× multiples are **A**); overrides the ULB [B16] |
 | Usage variation $v$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.30 · **A** | CV bound $[0,1]$ chosen; moderate default |
-| Individual limit $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
-| Enterprise limit $\beta_E$ | $0 · **A** | $\$200\cdot L$ = $20,000 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $1,500 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$200\times L$; recomputed only when total users changes) |
+| Universal ULB $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
+| Enterprise limit $\beta_E$ | $0 · **A** | $\$256\cdot L$ = $25,600 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $2,620 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$256\times L$; recomputed only when total users changes) |
 | Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
 | Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
 | Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
@@ -112,16 +116,17 @@ A cost center's inherited budget multiple is a fixed **1×** of its own license 
 
 > No GitHub formula exists for how much an individual consumes; §4 is the simulator's statistical model. GitHub only states qualitatively that heavier/agentic use costs more credits [B1]. Safe to tune.
 
-For each group $g$, the first $\lfloor A_g\,\phi \rceil$ active users are **power users** (`engine.ts:150-152`). Monthly target (`engine.ts:153-155`):
+Power users are the first $\lfloor A_g\,\phi \rceil$ active users of each group, where $\phi = \text{powerUsers}/L$ is the power-user share of all licensed users (`engine.ts:150`). Each user has a monthly **target** $\tau_i$ and a per-user **limit** $U_i$ (`engine.ts:151-165`):
 
-$$\tau_i = \begin{cases} \bar u\,m & \text{power user}\\ \bar u & \text{normal user}\end{cases}$$
+$$(\tau_i,\ U_i) = \begin{cases} (B_{\text{pow}},\ B_{\text{pow}}) & \text{power user — individual budget override (§2.1) [B16]}\\ (\bar u,\ U_g) & \text{normal user — limit is the group's universal/CC ULB}\end{cases}$$
+
+where $B_{\text{pow}} = \text{avgPowerUserBudget}/c$ (credits). A power user is modeled to consume at their individual budget, which **also caps them**, overriding the universal/CC ULB (GitHub's power-user override guidance [B16]).
 
 Monthly draw (`engine.ts:156`) and daily allocation (`engine.ts:157-164`):
-
 $$\mu_i \sim \mathrm{LogNormal}(\text{mean}=\tau_i,\ \mathrm{CV}=v), \qquad
 x_{i,d} = \mu_i\,\frac{w_{i,d}}{\sum_{d'=1}^{D} w_{i,d'}},\quad w_{i,d}\sim \mathrm{LogNormal}(\text{mean}=1,\ \mathrm{CV}=v)$$
 
-By construction $\sum_{d=1}^{D} x_{i,d} = \mu_i$ (a user's daily shares sum to its monthly draw). If $v=0$, $\mu_i=\tau_i$ and $x_{i,d}=\tau_i/D$ (uniform).
+By construction $\sum_{d=1}^{D} x_{i,d} = \mu_i$ (a user's daily shares sum to its monthly draw). If $v=0$, $\mu_i=\tau_i$ and $x_{i,d}=\tau_i/D$ (uniform). Because a power user's target equals their limit, at $v=0$ they consume exactly their budget and are **not** blocked; only variation ($v>0$) pushes some above their budget (see §6).
 
 ### 4.1 Log-normal parametrization — `src/model/rng.ts:29-34`  **[Assumption]**
 For target arithmetic mean $\mu_X$ and coefficient of variation $v$:
@@ -152,12 +157,12 @@ Capped cost centers draw from their own $\text{sub}_g$; everyone else shares $P_
 ### 5.2 Default & maximum of the enterprise limit — `defaults.ts` (`DEFAULT_ENTERPRISE_LIMIT_USD`, `ENTERPRISE_LIMIT_MAX_USD`); validated in `engine.test.ts`  **[Assumption]**
 
 The enterprise limit is an absolute USD budget on the slider range $[0,\ \beta_E^{\max}(L)]$. The **default** is derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), budgets non-binding:
-$$U_{\text{ref}}=\sum_{i\in\text{active}}\min\big(\tau_i,\ U_{g(i)}\cdot c\big),\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big),\qquad \boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }$$
-At the shipped defaults, $U_{\text{ref}}=\$4{,}000$ (with $\bar u=\$50$, all 80 active users consume the full \$50 individual limit — the \$50 normal target meets the cap and power users are capped down to it — across the default cost center + the unassigned group) and the \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$1{,}500$ ⇒ **default $=\$1{,}500$**.
+$$U_{\text{ref}}=\sum_{i\in\text{active}}\min(\tau_i,\ U_i)\cdot c,\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big),\qquad \boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }$$
+At the shipped defaults ($v=0$): **72 normal** users consume \$50 each (target \$50 = universal ULB) and **8 power** users consume \$190 each (their individual budget), so $U_{\text{ref}}=72(\$50)+8(\$190)=\$5{,}120$. The \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$2{,}620$ ⇒ **default $=\$2{,}620$**.
 
 **Slider max (dynamic):** to give larger orgs enough range, the max **scales linearly with total users** $L$:
-$$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{100}=\$200\times L\ }$$
-`ENTERPRISE_LIMIT_MAX_USD` $=\$20{,}000$ is the max at the default $L=100$ (equivalently $5\times U_{\text{ref}}$). As a pure function of $L$, the max **recomputes only when "Total users with licenses" changes**; the default and any user-set value are untouched (kept in range if $L$ is lowered, like §9). Budgets cap metered charges on top of license fees [B5]; the "5×" base and "\$200/user" scale are modeling choices. (`enterpriseLimitMaxUsd` and the $v=0$ reference are checked in `engine.test.ts`.)
+$$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{100}=\$256\times L\ }$$
+`ENTERPRISE_LIMIT_MAX_USD` $=\$25{,}600$ is the max at the default $L=100$ (equivalently $5\times U_{\text{ref}}=5\times\$5{,}120$). As a pure function of $L$, the max **recomputes only when "Total users with licenses" changes**; the default and any user-set value are untouched (kept in range if $L$ is lowered, like §9). Budgets cap metered charges on top of license fees [B5]; the "5×" base and "\$256/user" scale are modeling choices. (`enterpriseLimitMaxUsd` and the $v=0$ reference are checked in `engine.test.ts`.)
 
 ---
 
@@ -165,8 +170,8 @@ $$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{1
 
 State: $P_{\text{shared}}$, each $\text{sub}_g$, per-group metered $\mathrm{Me}_g$ (USD) and included $\mathrm{In}_g$ (USD), enterprise metered $\mathrm{Me}_E$, and per-user cumulative credits $\mathrm{cum}_i$ (all start 0). For each day $d=1..D$, for each **unblocked** active user $i$ in group $g$:
 
-**(a) User-level limit (hard stop)** — `engine.ts:193-199` — **[Fact]** [B4]
-$$r_i = U_g - \mathrm{cum}_i;\quad r_i\le 0 \Rightarrow \text{block } i;\qquad \sigma_{i,d}=\min(x_{i,d},\, r_i)$$
+**(a) User-level limit (hard stop)** — `engine.ts:191-199` — **[Fact]** [B4]
+Each user $i$ has a per-user limit $U_i$ (§4: normal → the group ULB $U_g$; power → their budget $B_{\text{pow}}$). With $r_i = U_i - \mathrm{cum}_i$ and $\sigma_{i,d}=\min(x_{i,d},\, r_i)$, user $i$ is counted **blocked** iff their intended usage exceeds their limit — i.e. their draw on some day exceeds the remaining room ($x_{i,d} > r_i$, equivalently $\mu_i > U_i$). Reaching the limit exactly is **not** blocked.
 
 **(b) Included then metered routing** — `engine.ts:205-220` — **[Fact]** [B1][B10]
 

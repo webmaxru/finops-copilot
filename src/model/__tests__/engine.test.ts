@@ -8,8 +8,12 @@ import {
   ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD,
   enterpriseLimitMaxUsd,
   DEFAULT_TOTAL_LICENSES,
-  DEFAULT_INDIVIDUAL_LIMIT_USD,
-  INDIVIDUAL_LIMIT_MAX_MULTIPLE,
+  DEFAULT_UNIVERSAL_ULB_USD,
+  UNIVERSAL_ULB_MAX_MULTIPLE,
+  DEFAULT_POWER_USERS,
+  DEFAULT_POWER_USER_BUDGET_USD,
+  POWER_USER_BUDGET_MIN_USD,
+  POWER_USER_BUDGET_MAX_USD,
 } from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
@@ -49,23 +53,28 @@ describe('max-bill formula (licenses + enterprise budget)', () => {
   });
 });
 
-describe('individual-limit default & max derivation', () => {
-  it('default = average developer monthly usage (USD); slider max multiple is 10x', () => {
+describe('universal ULB & power-budget default derivation', () => {
+  it('ULB default = average developer monthly usage (USD); slider max multiple is 10x', () => {
     const inp = DEFAULT_INPUTS();
-    // Default individual limit = avg developer monthly usage converted to USD.
-    expect(DEFAULT_INDIVIDUAL_LIMIT_USD).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
-    expect(inp.individualLimitUsd).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
-    // Slider max (applied in the UI) = 10 x avg developer monthly usage.
-    expect(INDIVIDUAL_LIMIT_MAX_MULTIPLE).toBe(10);
+    expect(DEFAULT_UNIVERSAL_ULB_USD).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
+    expect(inp.universalUlbUsd).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
+    expect(UNIVERSAL_ULB_MAX_MULTIPLE).toBe(10);
+  });
+
+  it('power-user budget bounds/default are multiples of the Business seat price ($19)', () => {
+    expect(POWER_USER_BUDGET_MIN_USD).toBe(38); // 2 x $19
+    expect(POWER_USER_BUDGET_MAX_USD).toBe(760); // 40 x $19
+    expect(DEFAULT_POWER_USER_BUDGET_USD).toBe(190); // 10 x $19
+    expect(DEFAULT_POWER_USERS).toBe(10); // 10% of the 100 default users
   });
 });
 
 describe('enterprise-limit slider max scales with total users', () => {
-  it('is $200/user and equals the base at the default total', () => {
-    expect(ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD).toBe(200);
-    expect(enterpriseLimitMaxUsd(DEFAULT_TOTAL_LICENSES)).toBe(ENTERPRISE_LIMIT_MAX_USD); // $20,000 at L=100
+  it('is $256/user and equals the base at the default total', () => {
+    expect(ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD).toBe(256);
+    expect(enterpriseLimitMaxUsd(DEFAULT_TOTAL_LICENSES)).toBe(ENTERPRISE_LIMIT_MAX_USD); // $25,600 at L=100
     expect(enterpriseLimitMaxUsd(200)).toBe(2 * ENTERPRISE_LIMIT_MAX_USD); // linear in total users
-    expect(enterpriseLimitMaxUsd(1000)).toBe(200000);
+    expect(enterpriseLimitMaxUsd(1000)).toBe(256000);
   });
 });
 
@@ -74,28 +83,29 @@ describe('default enterprise-limit constants', () => {
     // Reference: default inputs, no usage variation, non-binding budgets.
     const ref = runSimulation({
       ...DEFAULT_INPUTS(),
+      costCenters: [],
       usageVariation: 0,
       enterpriseLimitUsd: 1e9,
       stopUsageBudgets: false,
     });
     const totalUsage = ref.monthEndIncludedUsd + ref.monthEndMeteredUsd;
-    // Default = expected monthly metered spend at defaults.
+    // Default = expected monthly metered spend at defaults ($2,620).
     expect(DEFAULT_ENTERPRISE_LIMIT_USD).toBeCloseTo(ref.monthEndMeteredUsd, 6);
-    // Max = 5 x total active-developer monthly usage at defaults.
+    // Max = 5 x total active-developer monthly usage at defaults ($5,120 -> $25,600).
     expect(ENTERPRISE_LIMIT_MAX_USD).toBeCloseTo(5 * totalUsage, 6);
   });
 });
 
-describe('individual limit (user-level budget) hard-stops', () => {
-  it('caps every active user at their limit and blocks them', () => {
+describe('universal ULB hard-stops', () => {
+  it('caps every active user at their limit and blocks those who exceed it', () => {
     const r = runSimulation(
       base({
         totalLicenses: 50,
         bizRatio: 1,
         activePct: 1,
         avgDevUsageCredits: 19000, // $190/mo target — well above the $50 cap
-        powerRatio: 0,
-        individualLimitUsd: 50,
+        powerUsers: 0,
+        universalUlbUsd: 50,
         enterpriseLimitUsd: 100000, // keep the enterprise budget non-binding so the ULB is the constraint
         usageVariation: 0,
       }),
@@ -117,8 +127,8 @@ describe('metered phase after the pool is exhausted', () => {
       bizRatio: 1,
       activePct: 1,
       avgDevUsageCredits: 10000, // $100/user
-      powerRatio: 0,
-      individualLimitUsd: 500, // not binding
+      powerUsers: 0,
+      universalUlbUsd: 500, // not binding
       enterpriseLimitUsd: 100000, // non-binding
       stopUsageBudgets: false,
       usageVariation: 0,
@@ -140,8 +150,8 @@ describe('stop-usage caps metered at the enterprise budget', () => {
         bizRatio: 1,
         activePct: 1,
         avgDevUsageCredits: 19000, // heavy
-        powerRatio: 0,
-        individualLimitUsd: 500, // not binding
+        powerUsers: 0,
+        universalUlbUsd: 500, // not binding
         enterpriseLimitUsd: 380,
         stopUsageBudgets: true,
         usageVariation: 0,
@@ -169,8 +179,8 @@ describe('cost-center included-usage cap (block mode)', () => {
         bizRatio: 1,
         activePct: 1,
         avgDevUsageCredits: 19000,
-        powerRatio: 0,
-        individualLimitUsd: 500,
+        powerUsers: 0,
+        universalUlbUsd: 500,
         usageVariation: 0,
         costCenters: [cc],
       }),
@@ -178,6 +188,66 @@ describe('cost-center included-usage cap (block mode)', () => {
     // carveout = 10*1900 = 19,000 cr = $190; block mode => no overage
     expect(r.monthEndMeteredUsd).toBeCloseTo(0, 6);
     expect(r.monthEndIncludedUsd).toBeLessThanOrEqual(190 + 1e-6);
+  });
+});
+
+describe('power-user individual budget override', () => {
+  it('lets power users spend up to their budget, above the universal ULB', () => {
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 10, // everyone is a power user
+        avgPowerUserBudgetUsd: 200, // individual override
+        universalUlbUsd: 50, // would cap normal users at $50
+        avgDevUsageCredits: 1900, // normal target (unused here)
+        enterpriseLimitUsd: 1e9,
+        stopUsageBudgets: false,
+        usageVariation: 0,
+      }),
+    );
+    const totalSpend = r.monthEndIncludedUsd + r.monthEndMeteredUsd;
+    // 10 power users each consume their $200 budget, not the $50 universal ULB.
+    expect(totalSpend).toBeCloseTo(10 * 200, 0);
+    // At v=0 usage equals the budget exactly => no unmet demand => not blocked.
+    expect(r.monthEndBlockedUsers).toBe(0);
+  });
+});
+
+describe('blocked count = users whose intended usage exceeds their limit', () => {
+  it('does not block users who consume exactly up to their limit (v=0)', () => {
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        avgDevUsageCredits: 5000, // $50 target
+        universalUlbUsd: 50, // == target
+        enterpriseLimitUsd: 1e9,
+        stopUsageBudgets: false,
+        usageVariation: 0,
+      }),
+    );
+    expect(r.monthEndBlockedUsers).toBe(0);
+  });
+
+  it('blocks users whose intended usage exceeds their limit', () => {
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        avgDevUsageCredits: 10000, // $100 target
+        universalUlbUsd: 50, // limit below target
+        enterpriseLimitUsd: 1e9,
+        stopUsageBudgets: false,
+        usageVariation: 0,
+      }),
+    );
+    expect(r.monthEndBlockedUsers).toBe(10);
   });
 });
 

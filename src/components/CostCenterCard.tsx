@@ -113,7 +113,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
       )}
 
       <Toggle
-        label="Use enterprise per-user limit"
+        label="Use universal ULB"
         checked={cc.userLimitInherit}
         onChange={(v) => setPatch({ userLimitInherit: v })}
         caption={<ApiOnlyBadge />}

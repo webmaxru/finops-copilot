@@ -36,10 +36,10 @@ export interface EnterpriseInputs {
   bizRatio: number; // 0..1 business share
   activePct: number; // 0..1 seats that actually use Copilot
   avgDevUsageCredits: number; // avg monthly usage per active normal dev (credits)
-  powerRatio: number; // 0..1 share of active users who are "power users"
-  powerMultiplier: number; // 2..5 how much more power users consume
+  powerUsers: number; // absolute count of power users (0..total users)
+  avgPowerUserBudgetUsd: number; // power users' individual budget = usage + limit (USD), overrides ULB
   usageVariation: number; // 0..1 coefficient of variation of usage
-  individualLimitUsd: number; // universal per-user budget (USD)
+  universalUlbUsd: number; // universal user-level budget for normal users (USD)
   enterpriseLimitUsd: number; // absolute USD enterprise metered budget (0..max)
   promo: boolean; // promotional included allowances (3000/7000)
   stopUsageBudgets: boolean; // hard-stop enterprise/CC metered budgets

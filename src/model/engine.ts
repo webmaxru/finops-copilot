@@ -105,7 +105,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         inclB,
         inclE,
         activePct: inp.activePct,
-        ulbUsd: cc.userLimitInherit ? inp.individualLimitUsd : cc.userLimitUsd,
+        ulbUsd: cc.userLimitInherit ? inp.universalUlbUsd : cc.userLimitUsd,
         capped: cc.includedCapEnabled,
         capMode: cc.includedCapMode,
         ccBudgetMultiple: cc.budgetMultipleInherit ? INHERITED_CC_BUDGET_MULTIPLE : cc.budgetMultiple,
@@ -123,7 +123,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     inclB,
     inclE,
     activePct: inp.activePct,
-    ulbUsd: inp.individualLimitUsd,
+    ulbUsd: inp.universalUlbUsd,
     capped: false,
     capMode: 'block',
     ccBudgetMultiple: null,
@@ -145,14 +145,19 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   for (const g of groups) if (g.capped) g.subPool = g.carveoutCredits;
 
   // ---- Build the active-user population with monthly + daily usage ----
+  // Power users are the first `powerUsers/totalLicenses` fraction of each group's
+  // active users. Their monthly usage is modeled at their individual budget,
+  // which also caps them (overriding the universal/CC ULB). Normal users consume
+  // the average developer usage, capped by their group's ULB.
+  const powerFraction = inp.totalLicenses > 0 ? inp.powerUsers / inp.totalLicenses : 0;
+  const powerBudgetCredits = inp.avgPowerUserBudgetUsd / CREDIT_USD;
   const users: UserState[] = [];
   for (const g of groups) {
-    const powerCount = Math.round(g.activeCount * inp.powerRatio);
+    const powerCount = Math.round(g.activeCount * powerFraction);
     for (let i = 0; i < g.activeCount; i++) {
       const isPower = i < powerCount;
-      const target = isPower
-        ? inp.avgDevUsageCredits * inp.powerMultiplier
-        : inp.avgDevUsageCredits;
+      const target = isPower ? powerBudgetCredits : inp.avgDevUsageCredits;
+      const ulb = isPower ? powerBudgetCredits : g.ulbCredits;
       const monthly = lognormal(rng, target, inp.usageVariation);
       const weights: number[] = [];
       let wsum = 0;
@@ -162,7 +167,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         wsum += w;
       }
       const dailyShare = weights.map((w) => (wsum > 0 ? (monthly * w) / wsum : monthly / SIM_DAYS));
-      users.push({ g, dailyShare, cum: 0, ulb: g.ulbCredits, blocked: false });
+      users.push({ g, dailyShare, cum: 0, ulb, blocked: false });
     }
   }
 
@@ -195,8 +200,12 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         u.blocked = true;
         continue;
       }
-      const spend = Math.min(u.dailyShare[d], room);
-      if (spend <= 0) continue;
+      const desired = u.dailyShare[d];
+      if (desired <= 0) continue;
+      const spend = Math.min(desired, room);
+      // "Blocked" = the user's intended usage exceeds their per-user limit
+      // (unmet demand), not merely reaching it exactly.
+      if (desired > room + 1e-9) u.blocked = true;
 
       const g = u.g;
       let includedUsed = 0;
@@ -224,7 +233,6 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       g.includedUsd += includedUsed * CREDIT_USD;
       totalIncludedUsd += includedUsed * CREDIT_USD;
       totalMeteredUsd += meteredCredits * CREDIT_USD;
-      if (u.cum >= u.ulb - 1e-9) u.blocked = true;
     }
 
     if (poolExhaustedDay === null && sharedPool <= 1e-6) poolExhaustedDay = d + 1;
@@ -296,9 +304,9 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     );
   }
   const perSeatIncluded = inp.totalLicenses > 0 ? (poolCredits * CREDIT_USD) / inp.totalLicenses : 0;
-  if (inp.individualLimitUsd > 0 && inp.individualLimitUsd < perSeatIncluded) {
+  if (inp.universalUlbUsd > 0 && inp.universalUlbUsd < perSeatIncluded) {
     warnings.push(
-      `Individual limit $${inp.individualLimitUsd} is below the average included per-seat value ($${perSeatIncluded.toFixed(0)}) — users may be blocked before using their included share.`,
+      `Universal ULB $${inp.universalUlbUsd} is below the average included per-seat value ($${perSeatIncluded.toFixed(0)}) — users may be blocked before using their included share.`,
     );
   }
   if (poolExhaustedDay === null) {

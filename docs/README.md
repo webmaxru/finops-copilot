@@ -37,11 +37,11 @@ The simulator models a developer's **monthly usage directly in AI credits (AICR)
 | $\rho$ | Business share of a seat pool | fraction $[0,1]$ |
 | $\alpha$ | active fraction (seats that actually use Copilot) | fraction $[0,1]$ |
 | $\bar u$ | average monthly usage of a *normal* active developer | AICR |
-| $\phi$ | power-user fraction | fraction $[0,1]$ |
-| $m$ | power-user multiplier | ratio $[2,5]$ |
+| $\phi$ | power-user share $=$ powerUsers$/L$ (input: **number of power users**, 0..$L$, default $\lfloor 0.1L\rceil$) | fraction |
+| $B_{\text{pow}}$ | **average power-user budget** — a power user's usage **and** limit (overrides ULB); \$38–\$760, default \$190 | USD |
 | $v$ | usage variation (coefficient of variation) | fraction $[0,1]$ |
-| $B_{\text{ind}}$ | universal per-user budget (default $\bar u\cdot c$; slider max $10\,\bar u\cdot c$) | USD |
-| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ \$200\cdot L]$ (max scales with total users) |
+| $B_{\text{ind}}$ | **universal user-level budget (ULB)** for normal users (default $\bar u\cdot c$; slider max $10\,\bar u\cdot c$) | USD |
+| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ \$256\cdot L]$ (max scales with total users) |
 | $g$ | a group: a cost center, or the "unassigned" group | — |
 | $C_g, V_g$ | group $g$ included credits (carveout) / license value | AICR / USD |
 

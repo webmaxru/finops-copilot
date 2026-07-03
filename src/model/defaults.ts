@@ -27,13 +27,13 @@ export const DEFAULT_TOTAL_LICENSES = 100;
  * Enterprise metered-budget defaults, derived from the default scenario at
  * usageVariation = 0 (see docs/formulas.md §5.2). Validated against a v = 0
  * reference run in engine.test.ts.
- *   default          = expected monthly metered spend at defaults        => $1,500
- *   max @ default L  = 5 x total active-developer monthly usage ($4,000) => $20,000
+ *   default          = expected monthly metered spend at defaults          => $2,620
+ *   max @ default L  = 5 x total active-developer monthly usage ($5,120)   => $25,600
  * The slider max scales linearly with total users (licenses) so larger orgs
  * get enough range; it recomputes only when total users changes.
  */
-export const DEFAULT_ENTERPRISE_LIMIT_USD = 1500;
-export const ENTERPRISE_LIMIT_MAX_USD = 20000; // max at the default total users (L = 100)
+export const DEFAULT_ENTERPRISE_LIMIT_USD = 2620;
+export const ENTERPRISE_LIMIT_MAX_USD = 25600; // max at the default total users (L = 100)
 export const ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD = ENTERPRISE_LIMIT_MAX_USD / DEFAULT_TOTAL_LICENSES; // $200 / user
 export function enterpriseLimitMaxUsd(totalLicenses: number): number {
   return ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD * Math.max(0, totalLicenses);
@@ -43,14 +43,26 @@ export function enterpriseLimitMaxUsd(totalLicenses: number): number {
 export const INHERITED_CC_BUDGET_MULTIPLE = 1;
 
 /**
- * Individual (per-user) limit derivation (see docs/formulas.md §2.1):
+ * Universal user-level budget (ULB) derivation (see docs/formulas.md §2.1):
  *   default    = average developer monthly usage, in USD  (ū · $0.01)
- *   slider max = INDIVIDUAL_LIMIT_MAX_MULTIPLE × average developer monthly usage
+ *   slider max = UNIVERSAL_ULB_MAX_MULTIPLE × average developer monthly usage
  * The max is applied live from the current avg-usage slider in the UI.
  */
 export const DEFAULT_AVG_DEV_USAGE_CREDITS = 5000;
-export const INDIVIDUAL_LIMIT_MAX_MULTIPLE = 10;
-export const DEFAULT_INDIVIDUAL_LIMIT_USD = DEFAULT_AVG_DEV_USAGE_CREDITS * CREDIT_USD;
+export const UNIVERSAL_ULB_MAX_MULTIPLE = 10;
+export const DEFAULT_UNIVERSAL_ULB_USD = DEFAULT_AVG_DEV_USAGE_CREDITS * CREDIT_USD;
+
+/**
+ * Power-user individual budget override (see docs/formulas.md §4, §2.1). A power
+ * user's monthly usage is modeled at this budget, which also serves as their
+ * per-user limit (overriding the universal ULB, per GitHub's individual-override
+ * guidance). Bounds/default are multiples of the Copilot Business seat price.
+ */
+export const POWER_USER_BUDGET_MIN_USD = 2 * SEAT_PRICE.business; // $38
+export const POWER_USER_BUDGET_MAX_USD = 40 * SEAT_PRICE.business; // $760
+export const DEFAULT_POWER_USER_BUDGET_USD = 10 * SEAT_PRICE.business; // $190
+/** Default number of power users = 10% of total users. */
+export const DEFAULT_POWER_USERS = Math.round(DEFAULT_TOTAL_LICENSES * 0.1); // 10
 
 /** Slider bounds for the UI controls. */
 export const RANGES = {
@@ -58,10 +70,10 @@ export const RANGES = {
   bizRatio: { min: 0, max: 1, step: 0.01 },
   activePct: { min: 0, max: 1, step: 0.01 },
   avgDevUsageCredits: { min: 1900, max: 19000, step: 100 },
-  powerRatio: { min: 0, max: 1, step: 0.01 },
-  powerMultiplier: { min: 2, max: 5, step: 0.1 },
+  powerUsers: { min: 0, step: 1 }, // max is dynamic in the UI: = total users (licenses)
+  avgPowerUserBudgetUsd: { min: POWER_USER_BUDGET_MIN_USD, max: POWER_USER_BUDGET_MAX_USD, step: 1 },
   usageVariation: { min: 0, max: 1, step: 0.01 },
-  individualLimitUsd: { min: 0, step: 1 }, // max is dynamic in the UI: 10 x avg dev usage
+  universalUlbUsd: { min: 0, step: 1 }, // max is dynamic in the UI: 10 x avg dev usage
   enterpriseLimitUsd: { min: 0, step: 50 }, // max is dynamic in the UI: scales with total users (enterpriseLimitMaxUsd)
   ccMembers: { min: 0, max: 1000, step: 1 },
   ccUserLimitUsd: { min: 0, max: 500, step: 1 },
@@ -98,10 +110,10 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     bizRatio: 0.7,
     activePct: 0.8,
     avgDevUsageCredits: DEFAULT_AVG_DEV_USAGE_CREDITS,
-    powerRatio: 0.2,
-    powerMultiplier: 3,
+    powerUsers: DEFAULT_POWER_USERS,
+    avgPowerUserBudgetUsd: DEFAULT_POWER_USER_BUDGET_USD,
     usageVariation: 0.3,
-    individualLimitUsd: DEFAULT_INDIVIDUAL_LIMIT_USD,
+    universalUlbUsd: DEFAULT_UNIVERSAL_ULB_USD,
     enterpriseLimitUsd: DEFAULT_ENTERPRISE_LIMIT_USD,
     promo: false,
     stopUsageBudgets: true,

@@ -19,6 +19,7 @@ Every billing rule in these docs is a **[Fact]** backed by an official GitHub so
 | **B13** | Cost centers support included-usage caps (auto-sized; block/overage; API-only) | https://github.blog/changelog/2026-07-02-cost-centers-now-support-included-usage-caps/ |
 | **B14** | Auto-model-selection −10% discount on model cost (paid plans) | https://docs.github.com/en/copilot/concepts/models/auto-model-selection |
 | **B15** | Data-residency / FedRAMP-compliant requests: +10% AI credit consumption | https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/github-copilot-with-data-residency |
+| **B16** | Identify power users and set individual budget overrides (higher per-user budget that overrides the universal budget) | https://docs.github.com/en/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides |
 
 ## Additional context (not tagged inline)
 
