@@ -1,5 +1,5 @@
 import { useStore, useSimResult } from '../state/store';
-import { RANGES } from '../model/defaults';
+import { RANGES, SEAT_PRICE } from '../model/defaults';
 import { fmtUsd, fmtCredits, fmtInt, fmtMultiplier, usdToCredits } from '../model/format';
 import type { CostCenter, GroupSeries } from '../model/types';
 import Slider from './Slider';
@@ -49,6 +49,13 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const available = Math.max(0, totalLicenses - othersMembers);
   const membersMax = Math.min(RANGES.ccMembers.max, Math.max(available, cc.members));
 
+  // Business/Enterprise seat split for this cost center's own ratio (the ratio
+  // slider is only shown when the CC does not inherit the enterprise mix, so
+  // cc.bizRatio is the effective ratio here). Matches the engine's rounding.
+  const ccSeats = series?.seats ?? Math.max(0, Math.round(cc.members));
+  const ccBizSeats = Math.round(ccSeats * cc.bizRatio);
+  const ccEntSeats = ccSeats - ccBizSeats;
+
   return (
     <article
       style={{
@@ -96,38 +103,44 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
       />
 
       <Toggle
-        label="Use enterprise plan mix"
+        label="Use enterprise Business/Enterprise plan mix"
         checked={cc.planMixInherit}
         onChange={(v) => setPatch({ planMixInherit: v })}
       />
       {!cc.planMixInherit && (
         <Slider
-          label="Business share"
+          label="Business / Enterprise ratio"
           value={cc.bizRatio}
           min={RANGES.bizRatio.min}
           max={RANGES.bizRatio.max}
           step={RANGES.bizRatio.step}
           onChange={(v) => setPatch({ bizRatio: v })}
           format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
+          caption={`${fmtInt(ccBizSeats)} Business ($${ccBizSeats * SEAT_PRICE.business}) · ${fmtInt(
+            ccEntSeats,
+          )} Enterprise ($${ccEntSeats * SEAT_PRICE.enterprise})`}
         />
       )}
 
       <Toggle
-        label="Use universal ULB"
+        label="Use enterprise ULB"
         checked={cc.userLimitInherit}
         onChange={(v) => setPatch({ userLimitInherit: v })}
-        caption={<ApiOnlyBadge />}
       />
       {!cc.userLimitInherit && (
         <Slider
-          label="CC per-user limit"
+          label="Cost center ULB"
           value={cc.userLimitUsd}
           min={RANGES.ccUserLimitUsd.min}
           max={RANGES.ccUserLimitUsd.max}
           step={RANGES.ccUserLimitUsd.step}
           onChange={(v) => setPatch({ userLimitUsd: v })}
           format={(v) => fmtUsd(v)}
-          caption={`= ${fmtCredits(usdToCredits(cc.userLimitUsd))} per user (hard stop)`}
+          caption={
+            <>
+              <ApiOnlyBadge /> = {fmtCredits(usdToCredits(cc.userLimitUsd))} per user (hard stop)
+            </>
+          }
         />
       )}
 
@@ -156,7 +169,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
       />
 
       <Toggle
-        label="Included-usage cap (limit to own licenses)"
+        label="AI credit pool (limit to own licenses)"
         checked={cc.includedCapEnabled}
         onChange={(v) => setPatch({ includedCapEnabled: v })}
         caption={
