@@ -50,6 +50,7 @@ describe('individual limit (user-level budget) hard-stops', () => {
         avgDevUsageCredits: 19000, // $190/mo target — well above the $50 cap
         powerRatio: 0,
         individualLimitUsd: 50,
+        enterpriseLimitMultiple: 5, // keep the enterprise budget non-binding so the ULB is the constraint
         usageVariation: 0,
       }),
     );
