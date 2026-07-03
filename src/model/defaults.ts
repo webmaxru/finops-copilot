@@ -25,11 +25,11 @@ export const SIM_DAYS = 30;
  * Enterprise metered-budget defaults, derived from the default scenario at
  * usageVariation = 0 (see docs/formulas.md §5.2). Both are validated against a
  * v = 0 reference run in engine.test.ts.
- *   default = expected monthly metered spend at defaults          => $0
- *   max     = 5 x total active-developer monthly usage ($2,400)   => $12,000
+ *   default = expected monthly metered spend at defaults          => $1,500
+ *   max     = 5 x total active-developer monthly usage ($4,000)   => $20,000
  */
-export const DEFAULT_ENTERPRISE_LIMIT_USD = 0;
-export const ENTERPRISE_LIMIT_MAX_USD = 12000;
+export const DEFAULT_ENTERPRISE_LIMIT_USD = 1500;
+export const ENTERPRISE_LIMIT_MAX_USD = 20000;
 
 /** Budget multiple a cost center inherits when "use default budget" is on. */
 export const INHERITED_CC_BUDGET_MULTIPLE = 1;
@@ -79,7 +79,7 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     totalLicenses: 100,
     bizRatio: 0.7,
     activePct: 0.8,
-    avgDevUsageCredits: 2500,
+    avgDevUsageCredits: 5000,
     powerRatio: 0.2,
     powerMultiplier: 3,
     usageVariation: 0.3,

@@ -24,7 +24,7 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 ## 2. Inputs — `src/model/types.ts` (`EnterpriseInputs`), defaults in `defaults.ts:52-71`
 
-$L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}2500,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$0,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (see §5.2 for its default and slider max).
+$L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$1{,}500,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (see §5.2 for its default and slider max).
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), budget multiple (inherit or own $k_{cc}$), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
@@ -100,7 +100,7 @@ Capped cost centers draw from their own $\text{sub}_g$; everyone else shares $P_
 The enterprise limit is an absolute USD budget with slider range $[0,\ \beta_E^{\max}]$. Both endpoints are derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), with budgets non-binding:
 $$U_{\text{ref}}=\sum_{i\in\text{active}}\min\big(\tau_i,\ U_{g(i)}\cdot c\big),\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big)$$
 $$\boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }\qquad\qquad \boxed{\ \beta_E^{\max}=5\times U_{\text{ref}}\ }$$
-At the shipped defaults, $U_{\text{ref}}=\$2{,}400$ (16 power users capped at \$50 + 64 normal at \$25, across the default cost center + the unassigned group) and the pool $P\cdot c=\$2{,}500$ covers it, so $\text{metered}_{\text{ref}}=\$0$. Therefore **default $=\$0$** and **max $=5\times\$2{,}400=\$12{,}000$**. Budgets cap metered charges on top of license fees [B5]; the "5×" scale is a modeling choice. (The closed form above holds for the default, uncapped scenario; the test derives both from an actual engine run so they stay in sync if defaults change.)
+At the shipped defaults, $U_{\text{ref}}=\$4{,}000$ (with $\bar u=\$50$, all 80 active users consume the full \$50 individual limit — the \$50 normal target meets the cap and power users are capped down to it — across the default cost center + the unassigned group) and the \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$1{,}500$. Therefore **default $=\$1{,}500$** and **max $=5\times\$4{,}000=\$20{,}000$**. Budgets cap metered charges on top of license fees [B5]; the "5×" scale is a modeling choice. (The closed form above holds for the default, uncapped scenario; the test derives both from an actual engine run so they stay in sync if defaults change.)
 
 ---
 
