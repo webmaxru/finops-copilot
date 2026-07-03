@@ -5,6 +5,9 @@ import {
   makeDefaultCostCenter,
   DEFAULT_ENTERPRISE_LIMIT_USD,
   ENTERPRISE_LIMIT_MAX_USD,
+  ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD,
+  enterpriseLimitMaxUsd,
+  DEFAULT_TOTAL_LICENSES,
   DEFAULT_INDIVIDUAL_LIMIT_USD,
   INDIVIDUAL_LIMIT_MAX_MULTIPLE,
 } from '../defaults';
@@ -54,6 +57,15 @@ describe('individual-limit default & max derivation', () => {
     expect(inp.individualLimitUsd).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
     // Slider max (applied in the UI) = 10 x avg developer monthly usage.
     expect(INDIVIDUAL_LIMIT_MAX_MULTIPLE).toBe(10);
+  });
+});
+
+describe('enterprise-limit slider max scales with total users', () => {
+  it('is $200/user and equals the base at the default total', () => {
+    expect(ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD).toBe(200);
+    expect(enterpriseLimitMaxUsd(DEFAULT_TOTAL_LICENSES)).toBe(ENTERPRISE_LIMIT_MAX_USD); // $20,000 at L=100
+    expect(enterpriseLimitMaxUsd(200)).toBe(2 * ENTERPRISE_LIMIT_MAX_USD); // linear in total users
+    expect(enterpriseLimitMaxUsd(1000)).toBe(200000);
   });
 });
 

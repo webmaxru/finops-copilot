@@ -1,6 +1,6 @@
 import Slider from './Slider';
 import Toggle from './Toggle';
-import { RANGES, SEAT_PRICE, INDIVIDUAL_LIMIT_MAX_MULTIPLE } from '../model/defaults';
+import { RANGES, SEAT_PRICE, INDIVIDUAL_LIMIT_MAX_MULTIPLE, enterpriseLimitMaxUsd } from '../model/defaults';
 import { creditsToUsd, fmtCredits, fmtInt, fmtMultiplier, fmtPct, fmtUsd, usdToCredits } from '../model/format';
 import { useSimResult, useStore } from '../state/store';
 
@@ -26,13 +26,19 @@ export default function GlobalControls() {
   // the max so the thumb stays usable if avg usage is lowered below it.
   const individualLimitMax = creditsToUsd(avgDevUsageCredits) * INDIVIDUAL_LIMIT_MAX_MULTIPLE;
 
+  // Enterprise-limit slider max scales with total users (licenses); it is a pure
+  // function of totalLicenses, so it only changes when that changes. The current
+  // / default value is untouched — kept in range so the thumb stays usable
+  // (docs/formulas.md §5.2, §2.2).
+  const enterpriseLimitMax = enterpriseLimitMaxUsd(totalLicenses);
+
   return (
     <section className="panel">
       <h2 style={{ marginTop: 0, marginBottom: 14 }}>Enterprise settings</h2>
 
       <div style={{ display: 'grid', gap: 14 }}>
         <Slider
-          label="Total licenses"
+          label="Total users with licenses"
           value={totalLicenses}
           min={RANGES.totalLicenses.min}
           max={RANGES.totalLicenses.max}
@@ -131,7 +137,7 @@ export default function GlobalControls() {
           label="Enterprise limit (metered budget)"
           value={enterpriseLimitUsd}
           min={RANGES.enterpriseLimitUsd.min}
-          max={RANGES.enterpriseLimitUsd.max}
+          max={Math.max(enterpriseLimitMax, enterpriseLimitUsd)}
           step={RANGES.enterpriseLimitUsd.step}
           onChange={(v) => setInput('enterpriseLimitUsd', v)}
           format={(v) => fmtUsd(v)}

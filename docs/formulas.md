@@ -47,7 +47,7 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 
 | Parameter | Min | Max | Default | Basis (formula / rationale / source) |
 |---|---|---|---|---|
-| Total licenses | 1 · **A** | 1,000 · **A** | 100 · **A** | UX cap; GitHub sets no seat maximum |
+| Total users with licenses | 1 · **A** | 1,000 · **A** | 100 · **A** | UX cap; GitHub sets no seat maximum |
 | Business share $\rho_B$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | assumed 70/30 Business:Enterprise mix |
 | Active % $\alpha$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.80 · **A** | assumed 80% of seats active |
 | Avg dev usage $\bar u$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | 5,000 cr ($50) · **A** | min = one Business seat's included credits [B1]; max $=10\times$ min (10× is **A**, base [B1]); default chosen (doubled from 2,500 on request) |
@@ -55,7 +55,7 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 | Power multiplier $m$ | 2 · **A** | 5 · **A** | 3 · **A** | chosen range & default |
 | Usage variation $v$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.30 · **A** | CV bound $[0,1]$ chosen; moderate default |
 | Individual limit $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
-| Enterprise limit $\beta_E$ | $0 · **A** | $5\,U_{\text{ref}}$ = $20,000 · **Calc** | $\text{metered}_{\text{ref}}$ = $1,500 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); max $=5\times$ total active-dev usage at defaults ($v{=}0$) |
+| Enterprise limit $\beta_E$ | $0 · **A** | $\$200\cdot L$ = $20,000 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $1,500 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$200\times L$; recomputed only when total users changes) |
 | Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
 | Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
 | Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
@@ -151,10 +151,13 @@ Capped cost centers draw from their own $\text{sub}_g$; everyone else shares $P_
 
 ### 5.2 Default & maximum of the enterprise limit — `defaults.ts` (`DEFAULT_ENTERPRISE_LIMIT_USD`, `ENTERPRISE_LIMIT_MAX_USD`); validated in `engine.test.ts`  **[Assumption]**
 
-The enterprise limit is an absolute USD budget with slider range $[0,\ \beta_E^{\max}]$. Both endpoints are derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), with budgets non-binding:
-$$U_{\text{ref}}=\sum_{i\in\text{active}}\min\big(\tau_i,\ U_{g(i)}\cdot c\big),\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big)$$
-$$\boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }\qquad\qquad \boxed{\ \beta_E^{\max}=5\times U_{\text{ref}}\ }$$
-At the shipped defaults, $U_{\text{ref}}=\$4{,}000$ (with $\bar u=\$50$, all 80 active users consume the full \$50 individual limit — the \$50 normal target meets the cap and power users are capped down to it — across the default cost center + the unassigned group) and the \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$1{,}500$. Therefore **default $=\$1{,}500$** and **max $=5\times\$4{,}000=\$20{,}000$**. Budgets cap metered charges on top of license fees [B5]; the "5×" scale is a modeling choice. (The closed form above holds for the default, uncapped scenario; the test derives both from an actual engine run so they stay in sync if defaults change.)
+The enterprise limit is an absolute USD budget on the slider range $[0,\ \beta_E^{\max}(L)]$. The **default** is derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), budgets non-binding:
+$$U_{\text{ref}}=\sum_{i\in\text{active}}\min\big(\tau_i,\ U_{g(i)}\cdot c\big),\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big),\qquad \boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }$$
+At the shipped defaults, $U_{\text{ref}}=\$4{,}000$ (with $\bar u=\$50$, all 80 active users consume the full \$50 individual limit — the \$50 normal target meets the cap and power users are capped down to it — across the default cost center + the unassigned group) and the \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$1{,}500$ ⇒ **default $=\$1{,}500$**.
+
+**Slider max (dynamic):** to give larger orgs enough range, the max **scales linearly with total users** $L$:
+$$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{100}=\$200\times L\ }$$
+`ENTERPRISE_LIMIT_MAX_USD` $=\$20{,}000$ is the max at the default $L=100$ (equivalently $5\times U_{\text{ref}}$). As a pure function of $L$, the max **recomputes only when "Total users with licenses" changes**; the default and any user-set value are untouched (kept in range if $L$ is lowered, like §9). Budgets cap metered charges on top of license fees [B5]; the "5×" base and "\$200/user" scale are modeling choices. (`enterpriseLimitMaxUsd` and the $v=0$ reference are checked in `engine.test.ts`.)
 
 ---
 

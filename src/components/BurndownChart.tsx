@@ -81,7 +81,7 @@ export default function BurndownChart() {
               y={sim.enterpriseBudgetUsd}
               stroke="var(--metered)"
               strokeDasharray="4 4"
-              label="budget"
+              label="Ent metered budget"
             />
             <ReferenceLine
               y={sim.maxBillUsd}

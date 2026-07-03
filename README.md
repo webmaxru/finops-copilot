@@ -22,7 +22,7 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | Business **1,900 cr / $19**, Enterprise **3,900 cr / $39** per seat | Included allowance per seat (promo **3,000 / 7,000** until **Sep 1 2026**) |
 | Included pool | Credits **pooled at the enterprise level**, funded by all seats |
 | Individual limit | **User-level budget** — caps a person's *total* (pool + metered) use, **always hard-stops** |
-| Enterprise limit ($0–$20,000) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
+| Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
 | Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
 | Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits (block or overage) — *API-only today* |
@@ -33,7 +33,7 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 ## Inputs
 
-**Enterprise (global):** total licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), power-user ratio, power-user multiplier (2×–5×), **usage variation**, individual limit ($; default = avg usage, max = 10× avg usage), enterprise limit ($0–$20k, absolute USD metered budget), promo-allowances toggle, stop-usage toggle.
+**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), power-user ratio, power-user multiplier (2×–5×), **usage variation**, individual limit ($; default = avg usage, max = 10× avg usage), enterprise limit (absolute USD metered budget; max scales with total users), promo-allowances toggle, stop-usage toggle.
 
 **Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an included-usage cap (block/overage).
 

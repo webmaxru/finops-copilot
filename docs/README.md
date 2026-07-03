@@ -33,7 +33,7 @@ The simulator models a developer's **monthly usage directly in AI credits (AICR)
 | $p_B, p_E$ | Business / Enterprise seat price | USD / seat / month |
 | $I_B, I_E$ | included credits per Business / Enterprise seat (standard or promo) | AICR / seat / month |
 | $D$ | days in the simulated month | days |
-| $L$ | total enterprise licenses | seats |
+| $L$ | total users with licenses (assigned seats) | seats |
 | $\rho$ | Business share of a seat pool | fraction $[0,1]$ |
 | $\alpha$ | active fraction (seats that actually use Copilot) | fraction $[0,1]$ |
 | $\bar u$ | average monthly usage of a *normal* active developer | AICR |
@@ -41,7 +41,7 @@ The simulator models a developer's **monthly usage directly in AI credits (AICR)
 | $m$ | power-user multiplier | ratio $[2,5]$ |
 | $v$ | usage variation (coefficient of variation) | fraction $[0,1]$ |
 | $B_{\text{ind}}$ | universal per-user budget (default $\bar u\cdot c$; slider max $10\,\bar u\cdot c$) | USD |
-| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ 20{,}000]$ |
+| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ \$200\cdot L]$ (max scales with total users) |
 | $g$ | a group: a cost center, or the "unassigned" group | — |
 | $C_g, V_g$ | group $g$ included credits (carveout) / license value | AICR / USD |
 

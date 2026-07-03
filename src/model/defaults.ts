@@ -21,15 +21,23 @@ export function includedPerSeat(plan: PlanType, promo: boolean): number {
 
 export const SIM_DAYS = 30;
 
+export const DEFAULT_TOTAL_LICENSES = 100;
+
 /**
  * Enterprise metered-budget defaults, derived from the default scenario at
- * usageVariation = 0 (see docs/formulas.md §5.2). Both are validated against a
- * v = 0 reference run in engine.test.ts.
- *   default = expected monthly metered spend at defaults          => $1,500
- *   max     = 5 x total active-developer monthly usage ($4,000)   => $20,000
+ * usageVariation = 0 (see docs/formulas.md §5.2). Validated against a v = 0
+ * reference run in engine.test.ts.
+ *   default          = expected monthly metered spend at defaults        => $1,500
+ *   max @ default L  = 5 x total active-developer monthly usage ($4,000) => $20,000
+ * The slider max scales linearly with total users (licenses) so larger orgs
+ * get enough range; it recomputes only when total users changes.
  */
 export const DEFAULT_ENTERPRISE_LIMIT_USD = 1500;
-export const ENTERPRISE_LIMIT_MAX_USD = 20000;
+export const ENTERPRISE_LIMIT_MAX_USD = 20000; // max at the default total users (L = 100)
+export const ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD = ENTERPRISE_LIMIT_MAX_USD / DEFAULT_TOTAL_LICENSES; // $200 / user
+export function enterpriseLimitMaxUsd(totalLicenses: number): number {
+  return ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD * Math.max(0, totalLicenses);
+}
 
 /** Budget multiple a cost center inherits when "use default budget" is on. */
 export const INHERITED_CC_BUDGET_MULTIPLE = 1;
@@ -54,7 +62,7 @@ export const RANGES = {
   powerMultiplier: { min: 2, max: 5, step: 0.1 },
   usageVariation: { min: 0, max: 1, step: 0.01 },
   individualLimitUsd: { min: 0, step: 1 }, // max is dynamic in the UI: 10 x avg dev usage
-  enterpriseLimitUsd: { min: 0, max: ENTERPRISE_LIMIT_MAX_USD, step: 50 },
+  enterpriseLimitUsd: { min: 0, step: 50 }, // max is dynamic in the UI: scales with total users (enterpriseLimitMaxUsd)
   ccMembers: { min: 0, max: 1000, step: 1 },
   ccUserLimitUsd: { min: 0, max: 500, step: 1 },
   ccBudgetMultiple: { min: 2, max: 5, step: 0.1 },
@@ -86,7 +94,7 @@ export function makeDefaultCostCenter(index: number): CostCenter {
 /** Fresh default inputs (new objects each call to avoid shared mutable state). */
 export function DEFAULT_INPUTS(): EnterpriseInputs {
   return {
-    totalLicenses: 100,
+    totalLicenses: DEFAULT_TOTAL_LICENSES,
     bizRatio: 0.7,
     activePct: 0.8,
     avgDevUsageCredits: DEFAULT_AVG_DEV_USAGE_CREDITS,
