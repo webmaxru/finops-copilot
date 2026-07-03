@@ -1,6 +1,6 @@
 # References
 
-Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B15]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07 against the June 1 2026 usage-based billing model. All sources are `docs.github.com` or GitHub's official product-release channel `github.blog/changelog`.
+Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B16]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07 against the June 1 2026 usage-based billing model. All sources are `docs.github.com` or GitHub's official product-release channel `github.blog/changelog`.
 
 | Tag | Establishes | URL |
 |-----|-------------|-----|

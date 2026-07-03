@@ -44,8 +44,8 @@ graph TD
 3. **Aggregate to the enterprise** (`engine.ts:135-141`): $B,E,F,P,\beta_E=\text{enterpriseLimitUsd},M=F+\beta_E,A$ (§5). The default and slider max of $\beta_E$ are derived at $v=0$ (§5.2).
 4. **Partition the pool** (`engine.ts:143-145`): capped CCs get their own $\text{sub}_g=C_g$; the rest form $P_{\text{shared}}$ (§5.1).
 5. **Generate the population** (`engine.ts:148-167`): for each group, mark power users, draw each user's monthly $\mu_i$ and 30 daily shares $x_{i,d}$ from the seeded log-normal (§4).
-6. **Run the day loop** $d=1..D$ (`engine.ts:190-255`): for each unblocked user apply the **user limit → pool → metered (CC then enterprise)** cascade (§6), then push per-group and enterprise snapshots.
-7. **Assemble `SimResult`** (`engine.ts:257-289`) and compute **warnings** (§8).
+6. **Run the day loop** $d=1..D$ (`engine.ts:195-255`): for each unblocked user apply the **user limit → pool → metered (CC then enterprise)** cascade (§6), then push per-group and enterprise snapshots.
+7. **Assemble `SimResult`** (`engine.ts:270-302`) and compute **warnings** (§8).
 
 ## Why the ordering matters (interconnections)
 
@@ -53,6 +53,7 @@ graph TD
 - **User limit gates everything.** $U_g$ (a user-level budget) caps a person's **total** pool+metered use and always hard-stops, so it is checked *first* and can prevent both pool draw and metered spend. [B4]
 - **Budgets cap only the metered leg.** $\beta_g$ (CC) and $\beta_E$ (enterprise) are applied inside `ApplyMetered`, i.e. after the pool is exhausted — never limiting pool use. Their `stop` flags decide whether the cap actually blocks or merely would-alert (charges still accrue). [B4][B5][B6]
 - **Additivity.** Because budgets cap only metered charges, the worst-case bill is $M=F+\beta_E$, not $\beta_E$ — the max-bill rule. [B5]
+- **"Blocked" means any hard stop.** A user is counted blocked for the month if a hard stop kept them from consuming what they wanted that day ($\text{spent}<x_{i,d}$) — whether from their **user limit** ($U_g$ / power-user override $B_{\text{pow}}$), a cost-center **included-usage cap** in block mode, or a cost-center/enterprise **metered-budget stop** whose `stop` flag is on. So enabling a budget stop that binds correctly shows blocked users even when nobody exceeds their own per-user limit (§6d). [B4][B6][B16]
 - **Determinism.** All randomness flows from `seed` through one `mulberry32` stream consumed in a fixed order (groups, then users, then that user's 30 daily weights), so a given input always yields identical output; "Reshuffle" changes only `seed`.
 
 ## Complexity & performance

@@ -126,7 +126,7 @@ Monthly draw (`engine.ts:156`) and daily allocation (`engine.ts:157-164`):
 $$\mu_i \sim \mathrm{LogNormal}(\text{mean}=\tau_i,\ \mathrm{CV}=v), \qquad
 x_{i,d} = \mu_i\,\frac{w_{i,d}}{\sum_{d'=1}^{D} w_{i,d'}},\quad w_{i,d}\sim \mathrm{LogNormal}(\text{mean}=1,\ \mathrm{CV}=v)$$
 
-By construction $\sum_{d=1}^{D} x_{i,d} = \mu_i$ (a user's daily shares sum to its monthly draw). If $v=0$, $\mu_i=\tau_i$ and $x_{i,d}=\tau_i/D$ (uniform). Because a power user's target equals their limit, at $v=0$ they consume exactly their budget and are **not** blocked; only variation ($v>0$) pushes some above their budget (see §6).
+By construction $\sum_{d=1}^{D} x_{i,d} = \mu_i$ (a user's daily shares sum to its monthly draw). If $v=0$, $\mu_i=\tau_i$ and $x_{i,d}=\tau_i/D$ (uniform). Because a power user's target equals their limit, at $v=0$ they consume exactly their budget and are **not** blocked *by their own limit*; only variation ($v>0$) pushes some above their budget. Note this is only the user-level limit — a binding cost-center or enterprise **metered-budget stop** can still block a user at $v=0$ (see §6d).
 
 ### 4.1 Log-normal parametrization — `src/model/rng.ts:29-34`  **[Assumption]**
 For target arithmetic mean $\mu_X$ and coefficient of variation $v$:
@@ -166,14 +166,14 @@ $$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{1
 
 ---
 
-## 6. Daily accounting loop — `engine.ts:190-255`
+## 6. Daily accounting loop — `engine.ts:195-255`
 
 State: $P_{\text{shared}}$, each $\text{sub}_g$, per-group metered $\mathrm{Me}_g$ (USD) and included $\mathrm{In}_g$ (USD), enterprise metered $\mathrm{Me}_E$, and per-user cumulative credits $\mathrm{cum}_i$ (all start 0). For each day $d=1..D$, for each **unblocked** active user $i$ in group $g$:
 
-**(a) User-level limit (hard stop)** — `engine.ts:191-199` — **[Fact]** [B4]
-Each user $i$ has a per-user limit $U_i$ (§4: normal → the group ULB $U_g$; power → their budget $B_{\text{pow}}$). With $r_i = U_i - \mathrm{cum}_i$ and $\sigma_{i,d}=\min(x_{i,d},\, r_i)$, user $i$ is counted **blocked** iff their intended usage exceeds their limit — i.e. their draw on some day exceeds the remaining room ($x_{i,d} > r_i$, equivalently $\mu_i > U_i$). Reaching the limit exactly is **not** blocked.
+**(a) User-level limit room (hard stop)** — `engine.ts:196-205` — **[Fact]** [B4]
+Each user $i$ has a per-user limit $U_i$ (§4: normal → the group ULB $U_g$; power → their individual budget $B_{\text{pow}}$, which overrides the ULB [B16]). With remaining room $r_i = U_i - \mathrm{cum}_i$: if $r_i \le 0$ the user has already reached their limit and is **blocked** for the rest of the month (skipped). Otherwise the day's servable amount is capped at the room, $\sigma_{i,d}=\min(x_{i,d},\, r_i)$. Whether the user is *counted* blocked is decided at commit time in (d).
 
-**(b) Included then metered routing** — `engine.ts:205-220` — **[Fact]** [B1][B10]
+**(b) Included then metered routing** — `engine.ts:207-226` — **[Fact]** [B1][B10]
 
 Capped group:
 $$\mathrm{inc}=\min(\sigma_{i,d},\ \text{sub}_g),\quad \text{sub}_g\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc}$$
@@ -182,7 +182,7 @@ $$\text{metered credits}=\begin{cases}\textsc{ApplyMetered}(g,\ell) & \text{capM
 Non-capped group (shared pool):
 $$\mathrm{inc}=\min(\sigma_{i,d},\ P_{\text{shared}}),\quad P_{\text{shared}}\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc};\qquad \text{metered credits}=\textsc{ApplyMetered}(g,\ell)$$
 
-**(c) `ApplyMetered(g, credits)`** — `engine.ts:176-188` — **[Fact]** [B4][B5]
+**(c) `ApplyMetered(g, credits)`** — `engine.ts:181-193` — **[Fact]** [B4][B5]
 $$
 \begin{aligned}
 a &= \text{credits}\cdot c && \text{(requested USD)}\\
@@ -194,9 +194,17 @@ a &= \text{credits}\cdot c && \text{(requested USD)}\\
 $$
 The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6]
 
-**(d) Commit user** — `engine.ts:222-227`
-$$\text{spent}=\mathrm{inc}+\text{metered credits};\quad \mathrm{cum}_i\mathrel{+}=\text{spent};\quad \mathrm{In}_g\mathrel{+}=\mathrm{inc}\cdot c;\quad \mathrm{cum}_i\ge U_g\Rightarrow\text{block }i$$
-Global accumulators (`engine.ts:224-226`): $\mathrm{In}_{\text{tot}}\mathrel{+}=\mathrm{inc}\cdot c$, $\mathrm{Me}_{\text{tot}}\mathrel{+}=\text{metered}\cdot c$.
+**(d) Commit user & blocked determination** — `engine.ts:228-240` — **[Fact]** [B4][B16]
+$$\text{spent}=\mathrm{inc}+\text{metered credits};\quad \mathrm{cum}_i\mathrel{+}=\text{spent};\quad \mathrm{In}_g\mathrel{+}=\mathrm{inc}\cdot c$$
+User $i$ is counted **blocked** for the month iff a hard stop prevented them from consuming their intended usage $x_{i,d}$ that day:
+$$\text{spent} < x_{i,d}-\varepsilon\ \ (\varepsilon=10^{-9})\ \Rightarrow\ \text{block }i$$
+This single condition unifies **every** hard stop the model supports — it is not just the user-level limit:
+
+- **User limit (ULB / power-user override):** room ran out, so $\sigma_{i,d}=r_i<x_{i,d}$ and hence $\text{spent}\le\sigma_{i,d}<x_{i,d}$. Equivalently $\mu_i>U_i$ over the month. [B4][B16]
+- **Cost-center included-usage cap, block mode:** the sub-pool leftover $\ell$ is dropped, so $\text{spent}=\mathrm{inc}<\sigma_{i,d}=x_{i,d}$. [B10]
+- **Metered-budget stop (cost-center or enterprise, when its stop flag is on):** once the budget is exhausted `ApplyMetered` serves less than requested, so $\text{spent}<x_{i,d}$. [B4][B6]
+
+Being served in full ($\text{spent}=x_{i,d}$, i.e. reaching a limit *exactly*) is **not** blocked. When no stop flag is on and no pool cap binds, only the user limit can block, so this matches the earlier user-limit-only behaviour; turning on a metered-budget stop that binds now correctly counts the users it cuts off (previously undercounted).
 
 Evaluation order across a request is exactly **user-limit → pool → CC budget → enterprise budget**, matching GitHub's documented order. [B4]
 
@@ -205,16 +213,16 @@ Evaluation order across a request is exactly **user-limit → pool → CC budget
 ## 7. Outputs — `SimResult`
 
 ### 7.1 Per-day snapshots
-Per group (`engine.ts:235-242`): for day $d$
+Per group (`engine.ts:246-256`): for day $d$
 $$\text{poolRemaining}=\begin{cases}\text{sub}_g & \text{capped}\\ \text{NaN} & \text{shares the pool}\end{cases},\quad \text{included}=\mathrm{In}_g,\ \text{metered}=\mathrm{Me}_g,\ \text{bill}=V_g+\mathrm{Me}_g$$
-Enterprise (`engine.ts:247-254`):
+Enterprise (`engine.ts:258-267`):
 $$\text{poolRemaining}=P_{\text{shared}}+\sum_{g:\text{capped}}\text{sub}_g,\quad \text{included}=\mathrm{In}_{\text{tot}},\ \text{metered}=\mathrm{Me}_{\text{tot}},\ \text{bill}=F+\mathrm{Me}_{\text{tot}}$$
-`blockedUsers` = count of blocked users at end of day $d$ (`engine.ts:234,245`).
+`blockedUsers` = count of blocked users at end of day $d$ (set at `engine.ts:240`; counted at `247,258`).
 
-### 7.2 Scalars — `engine.ts:257-289`
-$$\text{poolExhaustedDay}=\min\{d: P_{\text{shared}}\le 0\}\ \text{or null (never)}\ \ (\text{engine.ts:230})$$
-$$\text{poolUsedPct}=\min\!\Big(1,\ \frac{\mathrm{In}_{\text{tot}}}{P\cdot c}\Big)\ \ (\text{engine.ts:275})$$
-Month-end values (`engine.ts:335-339`, read from day $D$'s snapshot): $\text{monthEndBill}=F+\mathrm{Me}_{\text{tot}}$, $\text{monthEndMetered}=\mathrm{Me}_{\text{tot}}$, $\text{monthEndIncluded}=\mathrm{In}_{\text{tot}}$, $\text{monthEndBlocked}=\text{blocked}(D)$.
+### 7.2 Scalars — `engine.ts:270-302`
+$$\text{poolExhaustedDay}=\min\{d: P_{\text{shared}}\le 0\}\ \text{or null (never)}\ \ (\text{engine.ts:243})$$
+$$\text{poolUsedPct}=\min\!\Big(1,\ \frac{\mathrm{In}_{\text{tot}}}{P\cdot c}\Big)\ \ (\text{engine.ts:288})$$
+Month-end values (`engine.ts:347-351`, read from day $D$'s snapshot): $\text{monthEndBill}=F+\mathrm{Me}_{\text{tot}}$, $\text{monthEndMetered}=\mathrm{Me}_{\text{tot}}$, $\text{monthEndIncluded}=\mathrm{In}_{\text{tot}}$, $\text{monthEndBlocked}=\text{blocked}(D)$.
 
 ---
 

@@ -251,6 +251,32 @@ describe('blocked count = users whose intended usage exceeds their limit', () =>
   });
 });
 
+describe('users blocked by the enterprise metered-budget stop', () => {
+  it('counts users cut off by the budget hard-stop, not just the ULB', () => {
+    // Reported scenario: demand > pool + budget, stop-usage on, and no user
+    // exceeds their own ULB/budget — yet the enterprise budget hard-stop cuts
+    // everyone off, so they must be counted as blocked.
+    const r = runSimulation(
+      base({
+        totalLicenses: 100,
+        bizRatio: 0.7,
+        activePct: 0.8,
+        avgDevUsageCredits: 5000, // normal target $50 == universal ULB
+        universalUlbUsd: 50,
+        powerUsers: 10,
+        avgPowerUserBudgetUsd: 190, // power target $190 == their budget
+        enterpriseLimitUsd: 1350, // below the $2,620 metered demand
+        stopUsageBudgets: true,
+        usageVariation: 0,
+      }),
+    );
+    // metered demand ($2,620) is capped at the $1,350 budget ...
+    expect(r.monthEndMeteredUsd).toBeCloseTo(1350, 0);
+    // ... so active users are cut off by the budget => blocked > 0.
+    expect(r.monthEndBlockedUsers).toBe(r.activeUsers);
+  });
+});
+
 describe('warnings', () => {
   it('warns when cost-center seats exceed total licenses', () => {
     const cc = { ...makeDefaultCostCenter(1), members: 200 };

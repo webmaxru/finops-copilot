@@ -203,9 +203,6 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       const desired = u.dailyShare[d];
       if (desired <= 0) continue;
       const spend = Math.min(desired, room);
-      // "Blocked" = the user's intended usage exceeds their per-user limit
-      // (unmet demand), not merely reaching it exactly.
-      if (desired > room + 1e-9) u.blocked = true;
 
       const g = u.g;
       let includedUsed = 0;
@@ -233,6 +230,14 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       g.includedUsd += includedUsed * CREDIT_USD;
       totalIncludedUsd += includedUsed * CREDIT_USD;
       totalMeteredUsd += meteredCredits * CREDIT_USD;
+      // "Blocked" = the user had unmet demand today because a hard stop cut them
+      // off. This covers every hard stop in one condition (spent < desired):
+      //   - their own ULB / power-user individual override (spend < desired,
+      //     because room = limit - cum ran out), and/or
+      //   - a cost-center included-usage cap in block mode, and/or
+      //   - a cost-center or enterprise metered-budget stop (when "stop usage"
+      //     is on) that could not serve their leftover (spent < spend).
+      if (spent < desired - 1e-9) u.blocked = true;
     }
 
     if (poolExhaustedDay === null && sharedPool <= 1e-6) poolExhaustedDay = d + 1;
