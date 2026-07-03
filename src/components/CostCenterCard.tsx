@@ -132,7 +132,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
       )}
 
       <Toggle
-        label="Use enterprise budget multiple"
+        label="Use default budget (1× license value)"
         checked={cc.budgetMultipleInherit}
         onChange={(v) => setPatch({ budgetMultipleInherit: v })}
       />

@@ -24,7 +24,7 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 ## 2. Inputs — `src/model/types.ts` (`EnterpriseInputs`), defaults in `defaults.ts:52-71`
 
-$L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ k_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}2500,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ k_E{=}1,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$.
+$L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}2500,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$0,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (see §5.2 for its default and slider max).
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), budget multiple (inherit or own $k_{cc}$), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
@@ -47,7 +47,8 @@ U_g &= B^{user}_g / c & &\text{per-user limit in credits — [Fact] [B4]}\\
 $$
 
 **Inheritance** (`engine.ts:104,108,111`) — **[Fact: these controls exist [B4][B5]]**:
-$$\rho_g=\text{inherit}?\ \rho_B:\rho_{cc},\quad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc},\quad k_g=\text{inherit}?\ k_E:k_{cc}$$
+$$\rho_g=\text{inherit}?\ \rho_B:\rho_{cc},\quad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc},\quad k_g=\text{inherit}?\ 1:k_{cc}$$
+A cost center's inherited budget multiple is a fixed **1×** of its own license value (`INHERITED_CC_BUDGET_MULTIPLE`). The enterprise limit is now an absolute USD amount (§5), so there is no enterprise multiple to inherit. **[Assumption]**
 
 **Unassigned group** (`engine.ts:116-132`): $s_U=\max(0,\ L-\sum_{cc}s_{cc})$, business share $\rho_B$, $U_U=B_{\text{ind}}/c$, never capped, $\beta_U=\text{null}$. **[Fact: seats not in a cost center bill to the enterprise [B11]]**
 
@@ -82,7 +83,7 @@ $$
 B=\textstyle\sum_g b_g,\quad E=\textstyle\sum_g e_g & & \text{total seats by plan}\\
 F &= B\,p_B + E\,p_E & &\text{license fees — [Fact] [B3]}\\
 P &= \textstyle\sum_g C_g & &\text{total included pool — [Fact] [B1]}\\
-\beta_E &= k_E\cdot F & &\text{enterprise metered budget — [Assumption of parametrization]}\\
+\beta_E &= \text{enterpriseLimitUsd} & &\text{enterprise metered budget (absolute USD) — [Assumption]}\\
 M &= F + \beta_E & &\text{max possible bill — [Fact] [B5]}\\
 A &= \textstyle\sum_g A_g & &\text{active users}
 \end{aligned}
@@ -93,6 +94,13 @@ $$
 ### 5.1 Pool partition — `engine.ts:143-145`  **[Fact]** [B10]
 $$P_{\text{shared}}=\sum_{g:\ \neg\text{capped}} C_g, \qquad \text{sub}_g = C_g\ \ \text{for each capped cost center}$$
 Capped cost centers draw from their own $\text{sub}_g$; everyone else shares $P_{\text{shared}}$. Enabling a cap carves that CC's credits out of the shared pool but does not redistribute the rest. [B10]
+
+### 5.2 Default & maximum of the enterprise limit — `defaults.ts` (`DEFAULT_ENTERPRISE_LIMIT_USD`, `ENTERPRISE_LIMIT_MAX_USD`); validated in `engine.test.ts`  **[Assumption]**
+
+The enterprise limit is an absolute USD budget with slider range $[0,\ \beta_E^{\max}]$. Both endpoints are derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), with budgets non-binding:
+$$U_{\text{ref}}=\sum_{i\in\text{active}}\min\big(\tau_i,\ U_{g(i)}\cdot c\big),\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big)$$
+$$\boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }\qquad\qquad \boxed{\ \beta_E^{\max}=5\times U_{\text{ref}}\ }$$
+At the shipped defaults, $U_{\text{ref}}=\$2{,}400$ (16 power users capped at \$50 + 64 normal at \$25, across the default cost center + the unassigned group) and the pool $P\cdot c=\$2{,}500$ covers it, so $\text{metered}_{\text{ref}}=\$0$. Therefore **default $=\$0$** and **max $=5\times\$2{,}400=\$12{,}000$**. Budgets cap metered charges on top of license fees [B5]; the "5×" scale is a modeling choice. (The closed form above holds for the default, uncapped scenario; the test derives both from an actual engine run so they stay in sync if defaults change.)
 
 ---
 

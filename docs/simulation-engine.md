@@ -6,13 +6,13 @@ How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine
 
 ```mermaid
 graph TD
-  IN[Inputs: L, ρB, α, ū, φ, m, v, B_ind, kE, promo, stopE, cost centers, seed]
+  IN[Inputs: L, ρB, α, ū, φ, m, v, B_ind, βE$, promo, stopE, cost centers, seed]
 
   IN --> INCL[Included per seat I_B,I_E — promo? §1]
   IN --> GRP[Per-group seats: b_g,e_g,C_g,V_g,A_g,U_g,β_g — §3]
   INCL --> GRP
 
-  GRP --> AGG[Enterprise aggregates: B,E,F,P,βE=kE·F,M=F+βE,A — §5]
+  GRP --> AGG[Enterprise aggregates: B,E,F,P,βE=enterpriseLimitUsd,M=F+βE,A — §5]
   GRP --> POOL[Pool partition: P_shared, sub_g — §5.1]
 
   IN --> USERS[User population + usage: τ_i, μ_i~LogN, daily x_id — §4]
@@ -41,7 +41,7 @@ graph TD
 
 1. **Resolve included allowances** $I_B,I_E$ from the `promo` flag (`engine.ts:88-89`).
 2. **Build groups** (`engine.ts:92-132`): one `GroupState` per cost center (applying inheritance for plan mix, per-user limit, budget multiple), then the **unassigned** group with $s_U=\max(0,L-\sum s_{cc})$. Each group precomputes $b_g,e_g,C_g,V_g,A_g,U_g,\beta_g$ (§3).
-3. **Aggregate to the enterprise** (`engine.ts:135-141`): $B,E,F,P,\beta_E=k_E F,M=F+\beta_E,A$ (§5).
+3. **Aggregate to the enterprise** (`engine.ts:135-141`): $B,E,F,P,\beta_E=\text{enterpriseLimitUsd},M=F+\beta_E,A$ (§5). The default and slider max of $\beta_E$ are derived at $v=0$ (§5.2).
 4. **Partition the pool** (`engine.ts:143-145`): capped CCs get their own $\text{sub}_g=C_g$; the rest form $P_{\text{shared}}$ (§5.1).
 5. **Generate the population** (`engine.ts:148-167`): for each group, mark power users, draw each user's monthly $\mu_i$ and 30 daily shares $x_{i,d}$ from the seeded log-normal (§4).
 6. **Run the day loop** $d=1..D$ (`engine.ts:190-255`): for each unblocked user apply the **user limit → pool → metered (CC then enterprise)** cascade (§6), then push per-group and enterprise snapshots.

@@ -1,4 +1,4 @@
-import { CREDIT_USD, SEAT_PRICE, includedPerSeat, SIM_DAYS } from './defaults';
+import { CREDIT_USD, SEAT_PRICE, includedPerSeat, SIM_DAYS, INHERITED_CC_BUDGET_MULTIPLE } from './defaults';
 import { mulberry32, lognormal } from './rng';
 import type {
   DaySnapshot,
@@ -108,7 +108,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         ulbUsd: cc.userLimitInherit ? inp.individualLimitUsd : cc.userLimitUsd,
         capped: cc.includedCapEnabled,
         capMode: cc.includedCapMode,
-        ccBudgetMultiple: cc.budgetMultipleInherit ? inp.enterpriseLimitMultiple : cc.budgetMultiple,
+        ccBudgetMultiple: cc.budgetMultipleInherit ? INHERITED_CC_BUDGET_MULTIPLE : cc.budgetMultiple,
         stopUsageBudget: cc.stopUsageBudget,
       }),
     );
@@ -136,7 +136,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const totalEntSeats = groups.reduce((s, g) => s + g.entSeats, 0);
   const licenseFeesUsd = totalBizSeats * SEAT_PRICE.business + totalEntSeats * SEAT_PRICE.enterprise;
   const poolCredits = groups.reduce((s, g) => s + g.carveoutCredits, 0);
-  const enterpriseBudgetUsd = inp.enterpriseLimitMultiple * licenseFeesUsd;
+  const enterpriseBudgetUsd = inp.enterpriseLimitUsd;
   const maxBillUsd = licenseFeesUsd + enterpriseBudgetUsd;
   const activeUsers = groups.reduce((s, g) => s + g.activeCount, 0);
 

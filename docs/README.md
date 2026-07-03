@@ -41,7 +41,7 @@ The simulator models a developer's **monthly usage directly in AI credits (AICR)
 | $m$ | power-user multiplier | ratio $[2,5]$ |
 | $v$ | usage variation (coefficient of variation) | fraction $[0,1]$ |
 | $B_{\text{ind}}$ | universal per-user budget | USD |
-| $k_E$ | enterprise limit multiple | ratio $[1,5]$ |
+| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ 12{,}000]$ |
 | $g$ | a group: a cost center, or the "unassigned" group | — |
 | $C_g, V_g$ | group $g$ included credits (carveout) / license value | AICR / USD |
 

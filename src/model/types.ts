@@ -40,7 +40,7 @@ export interface EnterpriseInputs {
   powerMultiplier: number; // 2..5 how much more power users consume
   usageVariation: number; // 0..1 coefficient of variation of usage
   individualLimitUsd: number; // universal per-user budget (USD)
-  enterpriseLimitMultiple: number; // 1..5 enterprise metered budget = N x license value
+  enterpriseLimitUsd: number; // absolute USD enterprise metered budget (0..max)
   promo: boolean; // promotional included allowances (3000/7000)
   stopUsageBudgets: boolean; // hard-stop enterprise/CC metered budgets
   seed: number; // PRNG seed for deterministic sampling

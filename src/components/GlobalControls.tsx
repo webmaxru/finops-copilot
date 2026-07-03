@@ -13,7 +13,7 @@ export default function GlobalControls() {
   const powerMultiplier = useStore((s) => s.inputs.powerMultiplier);
   const usageVariation = useStore((s) => s.inputs.usageVariation);
   const individualLimitUsd = useStore((s) => s.inputs.individualLimitUsd);
-  const enterpriseLimitMultiple = useStore((s) => s.inputs.enterpriseLimitMultiple);
+  const enterpriseLimitUsd = useStore((s) => s.inputs.enterpriseLimitUsd);
   const promo = useStore((s) => s.inputs.promo);
   const stopUsageBudgets = useStore((s) => s.inputs.stopUsageBudgets);
   const setInput = useStore((s) => s.setInput);
@@ -124,15 +124,13 @@ export default function GlobalControls() {
 
         <Slider
           label="Enterprise limit (metered budget)"
-          value={enterpriseLimitMultiple}
-          min={RANGES.enterpriseLimitMultiple.min}
-          max={RANGES.enterpriseLimitMultiple.max}
-          step={RANGES.enterpriseLimitMultiple.step}
-          onChange={(v) => setInput('enterpriseLimitMultiple', v)}
-          format={fmtMultiplier}
-          caption={`metered budget ${fmtUsd(sim.enterpriseBudgetUsd)} · max bill ${fmtUsd(
-            sim.maxBillUsd,
-          )} (= licenses + budget)`}
+          value={enterpriseLimitUsd}
+          min={RANGES.enterpriseLimitUsd.min}
+          max={RANGES.enterpriseLimitUsd.max}
+          step={RANGES.enterpriseLimitUsd.step}
+          onChange={(v) => setInput('enterpriseLimitUsd', v)}
+          format={(v) => fmtUsd(v)}
+          caption={`metered budget on top of licenses · max bill ${fmtUsd(sim.maxBillUsd)} (= licenses + budget)`}
         />
 
         <Toggle

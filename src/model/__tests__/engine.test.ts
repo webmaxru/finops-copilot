@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { runSimulation } from '../engine';
-import { DEFAULT_INPUTS, makeDefaultCostCenter } from '../defaults';
+import {
+  DEFAULT_INPUTS,
+  makeDefaultCostCenter,
+  DEFAULT_ENTERPRISE_LIMIT_USD,
+  ENTERPRISE_LIMIT_MAX_USD,
+} from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
 // Build inputs with no cost centers by default so seat counts are exact.
@@ -31,12 +36,28 @@ describe('pool + license math', () => {
 
 describe('max-bill formula (licenses + enterprise budget)', () => {
   it('matches the documented 400-Business-seat relationship', () => {
-    const r = runSimulation(base({ totalLicenses: 400, bizRatio: 1, enterpriseLimitMultiple: 2 }));
+    const r = runSimulation(base({ totalLicenses: 400, bizRatio: 1, enterpriseLimitUsd: 5000 }));
     expect(r.licenseFeesUsd).toBe(7600); // 400 * $19
-    expect(r.enterpriseBudgetUsd).toBeCloseTo(15200, 6); // 2 * 7600
-    expect(r.maxBillUsd).toBeCloseTo(22800, 6);
-    // Research example: 400 licenses ($7,600) + a $5,000 budget => $12,600 max bill
-    expect(r.licenseFeesUsd + 5000).toBe(12600);
+    expect(r.enterpriseBudgetUsd).toBe(5000); // absolute USD metered budget
+    // Documented example: 400 licenses ($7,600) + a $5,000 budget => $12,600 max bill
+    expect(r.maxBillUsd).toBe(12600);
+  });
+});
+
+describe('default enterprise-limit constants', () => {
+  it('match the default scenario at variation = 0', () => {
+    // Reference: default inputs, no usage variation, non-binding budgets.
+    const ref = runSimulation({
+      ...DEFAULT_INPUTS(),
+      usageVariation: 0,
+      enterpriseLimitUsd: 1e9,
+      stopUsageBudgets: false,
+    });
+    const totalUsage = ref.monthEndIncludedUsd + ref.monthEndMeteredUsd;
+    // Default = expected monthly metered spend at defaults.
+    expect(DEFAULT_ENTERPRISE_LIMIT_USD).toBeCloseTo(ref.monthEndMeteredUsd, 6);
+    // Max = 5 x total active-developer monthly usage at defaults.
+    expect(ENTERPRISE_LIMIT_MAX_USD).toBeCloseTo(5 * totalUsage, 6);
   });
 });
 
@@ -50,7 +71,7 @@ describe('individual limit (user-level budget) hard-stops', () => {
         avgDevUsageCredits: 19000, // $190/mo target — well above the $50 cap
         powerRatio: 0,
         individualLimitUsd: 50,
-        enterpriseLimitMultiple: 5, // keep the enterprise budget non-binding so the ULB is the constraint
+        enterpriseLimitUsd: 100000, // keep the enterprise budget non-binding so the ULB is the constraint
         usageVariation: 0,
       }),
     );
@@ -73,7 +94,7 @@ describe('metered phase after the pool is exhausted', () => {
       avgDevUsageCredits: 10000, // $100/user
       powerRatio: 0,
       individualLimitUsd: 500, // not binding
-      enterpriseLimitMultiple: 5,
+      enterpriseLimitUsd: 100000, // non-binding
       stopUsageBudgets: false,
       usageVariation: 0,
     });
@@ -96,13 +117,13 @@ describe('stop-usage caps metered at the enterprise budget', () => {
         avgDevUsageCredits: 19000, // heavy
         powerRatio: 0,
         individualLimitUsd: 500, // not binding
-        enterpriseLimitMultiple: 2,
+        enterpriseLimitUsd: 380,
         stopUsageBudgets: true,
         usageVariation: 0,
       }),
     );
-    // pool $190, budget = 2*$190 = $380
-    expect(r.enterpriseBudgetUsd).toBeCloseTo(380, 6);
+    // pool $190, absolute metered budget $380
+    expect(r.enterpriseBudgetUsd).toBe(380);
     expect(r.monthEndMeteredUsd).toBeLessThanOrEqual(380 + 1e-6);
     expect(r.monthEndMeteredUsd).toBeCloseTo(380, 0);
     expect(r.monthEndBillUsd).toBeCloseTo(r.maxBillUsd, 0); // 190 + 380 = 570
