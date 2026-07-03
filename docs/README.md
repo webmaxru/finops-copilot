@@ -9,7 +9,7 @@ Formal reference for **every quantity, formula, and dependency** used by the spe
 | File | Contents |
 |------|----------|
 | [`billing-model.md`](./billing-model.md) | The real GitHub Copilot usage-based billing rules the simulator is built on, each with a documentation link. Includes rules the engine deliberately does **not** implement (token→credit conversion, auto-select discount, data-residency surcharge) and where they would plug in. |
-| [`formulas.md`](./formulas.md) | Every symbol and formula in formal notation, with its code location, a source link, and a **Fact / Assumption** tag. This is the canonical reference. |
+| [`formulas.md`](./formulas.md) | Every symbol and formula in formal notation, with its code location, a source link, and a **Fact / Assumption** tag. This is the canonical reference. **§2.2 provenance table** classifies every value's **min / max / default** as Asserted / Derived / Documented. |
 | [`simulation-engine.md`](./simulation-engine.md) | The end-to-end algorithm: data flow, group construction, the per-day accounting loop, the budget evaluation order, outputs, and warnings — i.e. *how the formulas interconnect*. |
 | [`references.md`](./references.md) | Consolidated list of every cited GitHub documentation URL. |
 

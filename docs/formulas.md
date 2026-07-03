@@ -2,6 +2,8 @@
 
 Canonical, formal specification of every quantity the engine computes. Each row/section gives the **formula**, its **code location** (pinned to `a033e79`), a **source** (GitHub doc tag `[Bn]` from [`references.md`](./references.md), or a modeling note), and a **tag**: **[Fact]**, **[Derived]**, or **[Assumption]**.
 
+> **Provenance at a glance:** for a single table classifying **every value's min, max, and default** as Asserted / Derived / Documented, see **§2.2 Provenance of every configurable value** below.
+
 Convention: `round` = round half to +∞ (JavaScript `Math.round`); $\lfloor\cdot\rceil$ denotes it. All money in USD, all credits in AICR, related by $c$.
 
 ---
@@ -36,6 +38,49 @@ $$B_{\text{ind}}^{\text{default}} = \bar u \cdot c, \qquad B_{\text{ind}}^{\max}
 - **Slider max** tracks the **current** avg-usage slider live: $10\times(\bar u\cdot c)$; at defaults $=\$500$. If $\bar u$ is lowered below the current limit, the UI keeps the current value in range so the thumb stays usable (same pattern as cost-center members, §9).
 
 This is a modeling choice — GitHub has no formula for a per-user budget amount; it only requires that user-level budgets hard-stop total consumption [B4].
+
+### 2.2 Provenance of every configurable value — min · max · default
+
+Explicit classification of **every** value's bounds and default. **Kind:** **A** = *Asserted* (a fixed design choice/assumption — no formula, no GitHub source); **Calc** = *Derived/Calculated* (formula in the Basis column, cross-referenced to §2.1 / §5.2 / §9); **Doc** = set by *official GitHub documentation* (source `[Bn]`, see [`references.md`](./references.md)). These correspond to the doc-wide tags **[Assumption] / [Derived] / [Fact]** respectively. *A(frac)* = an asserted logical bound of a fraction $[0,1]$. A dash (—) = the bound does not apply (booleans / constants). Values shown at the shipped defaults; $c=\$0.01$.
+
+**Global inputs** — `defaults.ts` (`RANGES`, `DEFAULT_INPUTS`)
+
+| Parameter | Min | Max | Default | Basis (formula / rationale / source) |
+|---|---|---|---|---|
+| Total licenses | 1 · **A** | 1,000 · **A** | 100 · **A** | UX cap; GitHub sets no seat maximum |
+| Business share $\rho_B$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | assumed 70/30 Business:Enterprise mix |
+| Active % $\alpha$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.80 · **A** | assumed 80% of seats active |
+| Avg dev usage $\bar u$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | 5,000 cr ($50) · **A** | min = one Business seat's included credits [B1]; max $=10\times$ min (10× is **A**, base [B1]); default chosen (doubled from 2,500 on request) |
+| Power ratio $\phi$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.20 · **A** | assumed 20% power users |
+| Power multiplier $m$ | 2 · **A** | 5 · **A** | 3 · **A** | chosen range & default |
+| Usage variation $v$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.30 · **A** | CV bound $[0,1]$ chosen; moderate default |
+| Individual limit $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
+| Enterprise limit $\beta_E$ | $0 · **A** | $5\,U_{\text{ref}}$ = $20,000 · **Calc** | $\text{metered}_{\text{ref}}$ = $1,500 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); max $=5\times$ total active-dev usage at defaults ($v{=}0$) |
+| Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
+| Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
+| Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
+
+**Cost-center inputs** — `defaults.ts` (`makeDefaultCostCenter`, `RANGES`), UI in `CostCenterCard.tsx`
+
+| Parameter | Min | Max | Default | Basis (formula / rationale / source) |
+|---|---|---|---|---|
+| CC members (seats) | 0 · **A** | $\min(1000,\ L-\!\sum_{\text{other CC}})$ · **Calc + Doc** | 30 · **A** | a seat belongs to one cost center ⇒ $\sum$ members $\le L$ [B10]; 1,000 cap is **A**; live (§9); default clamps to remaining seats on add |
+| CC Business share (own) | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | as global; used only when not inheriting |
+| CC per-user limit (own) | $0 · **A** | $500 · **A** | $50 · **A** | fixed range — **not** derived from $\bar u$ (unlike $B_{\text{ind}}$); default CC inherits $B_{\text{ind}}$ instead |
+| CC budget multiple (own) | 2 · **A** | 5 · **A** | 2 · **A** | chosen; the **inherited** multiple is a fixed 1× (`INHERITED_CC_BUDGET_MULTIPLE`, **A**, §3) |
+| CC included-usage cap | — | — | off · **A** | when on, the cap **amount** is auto-sized to the CC's own licenses' credits — **Doc** [B13][B10] |
+| CC included-cap mode | — | — | block · **A** | options {block, overage} are **Doc** [B13] |
+| CC stop usage | — | — | true · **A** | models hard caps |
+
+**Constants** — `defaults.ts` (see §1)
+
+| Constant | Value | Kind | Source |
+|---|---|---|---|
+| Credit rate $c$ | $0.01 / AICR | **Doc** | 1 AI credit = $0.01 [B1][B2] |
+| Seat price $p_B / p_E$ | $19 / $39 | **Doc** | [B3] |
+| Included $I_B / I_E$ (standard) | 1,900 / 3,900 | **Doc** | [B1] |
+| Included (promo → Sep 1 2026) | 3,000 / 7,000 | **Doc** | [B1] |
+| Simulated month $D$ | 30 days | **A** | one calendar month |
 
 ---
 
