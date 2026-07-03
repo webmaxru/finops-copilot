@@ -14,6 +14,10 @@ import {
   DEFAULT_POWER_USER_BUDGET_USD,
   POWER_USER_BUDGET_MIN_USD,
   POWER_USER_BUDGET_MAX_USD,
+  DEFAULT_CC_MEMBERS,
+  CC_BUDGET_DEFAULT_PER_SEAT_USD,
+  ccBudgetDefaultUsd,
+  ccBudgetMaxUsd,
 } from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
@@ -93,6 +97,54 @@ describe('default enterprise-limit constants', () => {
     expect(DEFAULT_ENTERPRISE_LIMIT_USD).toBeCloseTo(ref.monthEndMeteredUsd, 6);
     // Max = 5 x total active-developer monthly usage at defaults ($5,120 -> $25,600).
     expect(ENTERPRISE_LIMIT_MAX_USD).toBeCloseTo(5 * totalUsage, 6);
+  });
+});
+
+describe('cost-center budget bounds scale with the CC seats', () => {
+  it('mirrors the enterprise per-seat default ($26.20) and max ($256)', () => {
+    // Same per-seat logic as the enterprise limit, scaled by CC members.
+    expect(CC_BUDGET_DEFAULT_PER_SEAT_USD).toBeCloseTo(
+      DEFAULT_ENTERPRISE_LIMIT_USD / DEFAULT_TOTAL_LICENSES,
+      6,
+    );
+    expect(CC_BUDGET_DEFAULT_PER_SEAT_USD).toBeCloseTo(26.2, 6);
+    // Default(m) = $26.20 x m ; a fresh 30-seat CC => $786.
+    expect(ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS)).toBeCloseTo(786, 6);
+    expect(ccBudgetDefaultUsd(100)).toBeCloseTo(DEFAULT_ENTERPRISE_LIMIT_USD, 6);
+    // Max(m) = $256 x m ; reuses the enterprise per-license max, scaled by seats.
+    expect(ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD).toBe(256);
+    expect(ccBudgetMaxUsd(DEFAULT_CC_MEMBERS)).toBeCloseTo(256 * DEFAULT_CC_MEMBERS, 6);
+    expect(ccBudgetMaxUsd(100)).toBeCloseTo(ENTERPRISE_LIMIT_MAX_USD, 6);
+    expect(ccBudgetMaxUsd(0)).toBe(0);
+  });
+
+  it('uses the CC budget (absolute USD) to hard-stop that CC metered spend', () => {
+    // A capped CC (own pool) that spills to overage, with a low absolute budget
+    // and stop-usage on, must cap its own metered spend at exactly that budget.
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      includedCapEnabled: true,
+      includedCapMode: 'overage' as const,
+      budgetUsd: 40,
+      stopUsageBudget: true,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        avgDevUsageCredits: 19000, // heavy, forces overage past the $190 own pool
+        powerUsers: 0,
+        universalUlbUsd: 500, // not binding
+        usageVariation: 0,
+        stopUsageBudgets: false, // isolate the CC budget as the only stop
+        costCenters: [cc],
+      }),
+    );
+    const ccSeries = r.costCenters[0];
+    expect(ccSeries.monthEndMeteredUsd).toBeLessThanOrEqual(40 + 1e-6);
+    expect(ccSeries.monthEndMeteredUsd).toBeCloseTo(40, 0);
   });
 });
 

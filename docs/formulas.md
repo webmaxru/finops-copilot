@@ -28,7 +28,7 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 $L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$1{,}500,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (see §5.2 for its default and slider max).
 
-Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), budget multiple (inherit or own $k_{cc}$), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
+Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
 ### 2.1 Universal ULB & power-user budget — `defaults.ts` (`DEFAULT_UNIVERSAL_ULB_USD`, `UNIVERSAL_ULB_MAX_MULTIPLE`, `DEFAULT_POWER_USER_BUDGET_USD`, `POWER_USER_BUDGET_MIN/MAX_USD`), UI in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
 
@@ -71,7 +71,7 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 | CC members (seats) | 0 · **A** | $\min(1000,\ L-\!\sum_{\text{other CC}})$ · **Calc + Doc** | 30 · **A** | a seat belongs to one cost center ⇒ $\sum$ members $\le L$ [B10]; 1,000 cap is **A**; live (§9); default clamps to remaining seats on add |
 | CC Business share (own) | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | as global; used only when not inheriting |
 | CC per-user limit (own) | $0 · **A** | $500 · **A** | $50 · **A** | fixed range — **not** derived from $\bar u$ (unlike $B_{\text{ind}}$); default CC inherits $B_{\text{ind}}$ instead |
-| CC budget multiple (own) | 2 · **A** | 5 · **A** | 2 · **A** | chosen; the **inherited** multiple is a fixed 1× (`INHERITED_CC_BUDGET_MULTIPLE`, **A**, §3) |
+| CC metered budget $\beta_{cc}$ | $0 · **A** | $\$256\cdot s_{cc}$ · **Calc** | $\$26.20\cdot s_{cc}$ ($786 @ 30 seats) · **Calc** | §5.3: **same per-seat logic as the enterprise limit** (§5.2), scaled by the CC's seats $s_{cc}$: default $=\tfrac{\$2{,}620}{100}s_{cc}$, max $=\$256\,s_{cc}$ (recomputed only when the CC's seats change). Budgets cap metered [B5] |
 | CC included-usage cap | — | — | off · **A** | when on, the cap **amount** is auto-sized to the CC's own licenses' credits — **Doc** [B13][B10] |
 | CC included-cap mode | — | — | block · **A** | options {block, overage} are **Doc** [B13] |
 | CC stop usage | — | — | true · **A** | models hard caps |
@@ -100,13 +100,13 @@ C_g &= b_g\,I_B + e_g\,I_E & &\text{included credits (carveout) — [Fact] [B1]}
 V_g &= b_g\,p_B + e_g\,p_E & &\text{license value (USD) — [Fact] [B3]}\\
 A_g &= \lfloor s_g\,\alpha \rceil & &\text{active users — [Assumption]}\\
 U_g &= B^{user}_g / c & &\text{per-user limit in credits — [Fact] [B4]}\\
-\beta_g &= \begin{cases}k_g\,V_g & g\ \text{is a cost center}\\ \text{null} & g = \text{unassigned}\end{cases} & &\text{CC metered budget — [Assumption of parametrization; Fact that CC budgets cap metered [B5]]}
+\beta_g &= \begin{cases}\text{budgetUsd}_{cc} & g\ \text{is a cost center}\\ \text{null} & g = \text{unassigned}\end{cases} & &\text{CC metered budget — absolute USD (§5.3); [Fact that CC budgets cap metered [B5]]}
 \end{aligned}
 $$
 
-**Inheritance** (`engine.ts:104,108,111`) — **[Fact: these controls exist [B4][B5]]**:
-$$\rho_g=\text{inherit}?\ \rho_B:\rho_{cc},\quad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc},\quad k_g=\text{inherit}?\ 1:k_{cc}$$
-A cost center's inherited budget multiple is a fixed **1×** of its own license value (`INHERITED_CC_BUDGET_MULTIPLE`). The enterprise limit is now an absolute USD amount (§5), so there is no enterprise multiple to inherit. **[Assumption]**
+**Inheritance** (`engine.ts:104,108`) — **[Fact: these controls exist [B4][B5]]**:
+$$\rho_g=\text{inherit}?\ \rho_B:\rho_{cc},\qquad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc}$$
+The CC metered budget $\beta_g$ is **always an explicit absolute USD value** ($\text{budgetUsd}_{cc}$), taken directly from the CC slider — it is not inherited and no longer a multiple of license value. Its default and slider max scale with the CC's own seats (§5.3). **[Assumption of parametrization]**
 
 **Unassigned group** (`engine.ts:116-132`): $s_U=\max(0,\ L-\sum_{cc}s_{cc})$, business share $\rho_B$, $U_U=B_{\text{ind}}/c$, never capped, $\beta_U=\text{null}$. **[Fact: seats not in a cost center bill to the enterprise [B11]]**
 
@@ -163,6 +163,20 @@ At the shipped defaults ($v=0$): **72 normal** users consume \$50 each (target \
 **Slider max (dynamic):** to give larger orgs enough range, the max **scales linearly with total users** $L$:
 $$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{100}=\$256\times L\ }$$
 `ENTERPRISE_LIMIT_MAX_USD` $=\$25{,}600$ is the max at the default $L=100$ (equivalently $5\times U_{\text{ref}}=5\times\$5{,}120$). As a pure function of $L$, the max **recomputes only when "Total users with licenses" changes**; the default and any user-set value are untouched (kept in range if $L$ is lowered, like §9). Budgets cap metered charges on top of license fees [B5]; the "5×" base and "\$256/user" scale are modeling choices. (`enterpriseLimitMaxUsd` and the $v=0$ reference are checked in `engine.test.ts`.)
+
+### 5.3 Default & maximum of a cost-center budget — `defaults.ts` (`CC_BUDGET_DEFAULT_PER_SEAT_USD`, `ccBudgetDefaultUsd`, `ccBudgetMaxUsd`); validated in `engine.test.ts`  **[Assumption]**
+
+A cost center's metered budget $\beta_{cc}$ is an absolute USD value on the slider range $[0,\ \beta_{cc}^{\max}(s_{cc})]$ — **the same construction as the enterprise limit (§5.2), but scaled by the cost center's own seats $s_{cc}$ instead of total users $L$.** Both bounds are the enterprise per-seat rates multiplied by the CC's seats:
+$$
+\boxed{\ \beta_{cc}^{\text{default}}(s_{cc})=\underbrace{\tfrac{\text{DEFAULT\_ENTERPRISE\_LIMIT\_USD}}{100}}_{=\,\$26.20\ \text{/seat}}\times s_{cc},\qquad
+\beta_{cc}^{\max}(s_{cc})=\underbrace{\text{ENTERPRISE\_LIMIT\_MAX\_PER\_LICENSE\_USD}}_{=\,\$256\ \text{/seat}}\times s_{cc}\ }
+$$
+
+- **Per-seat default \$26.20** is the enterprise default (\$2,620, the expected metered spend at defaults, §5.2) spread over its 100 licenses — so a CC that were sized like the whole default enterprise ($s_{cc}=100$) would default to \$2,620. A fresh **30-seat** cost center therefore defaults to $\$26.20\times30=\boxed{\$786}$.
+- **Per-seat max \$256** reuses `ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD` (so $s_{cc}=100\Rightarrow\$25{,}600$, matching the enterprise max at $L=100$).
+- **Min \$0**, identical to the enterprise limit; \$0 with `stopUsageBudget` on hard-stops the CC at its included pool.
+
+As a pure function of $s_{cc}$, `ccBudgetMaxUsd` **recomputes only when the CC's seats change**; the current/user-set value is untouched (kept in range in the UI via `max(ccBudgetMaxUsd(sₒcc), value)`), exactly like the enterprise max. On creating a cost center the default is scaled to its actual (clamped) seats (`store.ts` `addCostCenter`). The CC budget caps that CC's metered charges inside `ApplyMetered` (§6c); the per-seat rates are inherited modeling choices from §5.2.
 
 ---
 

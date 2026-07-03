@@ -1,4 +1,4 @@
-import { CREDIT_USD, SEAT_PRICE, includedPerSeat, SIM_DAYS, INHERITED_CC_BUDGET_MULTIPLE } from './defaults';
+import { CREDIT_USD, SEAT_PRICE, includedPerSeat, SIM_DAYS } from './defaults';
 import { mulberry32, lognormal } from './rng';
 import type {
   DaySnapshot,
@@ -50,7 +50,7 @@ interface MakeGroupArgs {
   ulbUsd: number;
   capped: boolean;
   capMode: IncludedCapMode;
-  ccBudgetMultiple: number | null;
+  ccBudgetUsd: number | null;
   stopUsageBudget: boolean;
 }
 
@@ -74,7 +74,7 @@ function makeGroup(a: MakeGroupArgs): GroupState {
     ulbCredits: a.ulbUsd / CREDIT_USD,
     capped: a.capped,
     capMode: a.capMode,
-    ccBudgetUsd: a.ccBudgetMultiple == null ? null : a.ccBudgetMultiple * licenseValueUsd,
+    ccBudgetUsd: a.ccBudgetUsd,
     stopUsageBudget: a.stopUsageBudget,
     subPool: 0,
     includedUsd: 0,
@@ -108,7 +108,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         ulbUsd: cc.userLimitInherit ? inp.universalUlbUsd : cc.userLimitUsd,
         capped: cc.includedCapEnabled,
         capMode: cc.includedCapMode,
-        ccBudgetMultiple: cc.budgetMultipleInherit ? INHERITED_CC_BUDGET_MULTIPLE : cc.budgetMultiple,
+        ccBudgetUsd: cc.budgetUsd,
         stopUsageBudget: cc.stopUsageBudget,
       }),
     );
@@ -126,7 +126,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     ulbUsd: inp.universalUlbUsd,
     capped: false,
     capMode: 'block',
-    ccBudgetMultiple: null,
+    ccBudgetUsd: null,
     stopUsageBudget: inp.stopUsageBudgets,
   });
   groups.push(unassigned);

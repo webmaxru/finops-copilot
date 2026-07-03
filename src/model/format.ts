@@ -22,10 +22,6 @@ export function fmtPct(fraction: number, digits = 0): string {
   return `${(fraction * 100).toFixed(digits)}%`;
 }
 
-export function fmtMultiplier(x: number): string {
-  return `${Number.isInteger(x) ? x : x.toFixed(1)}\u00d7`;
-}
-
 /** "1,900 cr ($19)" — a credits value with its USD equivalent. */
 export function creditsWithUsd(credits: number): string {
   return `${fmtCredits(credits)} (${fmtUsd(creditsToUsd(credits))})`;

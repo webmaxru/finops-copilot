@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useMemo } from 'react';
-import { DEFAULT_INPUTS, makeDefaultCostCenter } from '../model/defaults';
+import { DEFAULT_INPUTS, makeDefaultCostCenter, ccBudgetDefaultUsd } from '../model/defaults';
 import { runSimulation } from '../model/engine';
 import type { CostCenter, EnterpriseInputs, SimResult } from '../model/types';
 
@@ -36,6 +36,9 @@ export const useStore = create<Store>((set) => ({
       const remaining = Math.max(0, s.inputs.totalLicenses - assigned);
       const cc = makeDefaultCostCenter(s.inputs.costCenters.length + 1);
       cc.members = Math.min(cc.members, remaining);
+      // Scale the default budget to the CC's actual (possibly clamped) seats,
+      // mirroring the enterprise limit's per-seat default (docs/formulas.md §5.3).
+      cc.budgetUsd = ccBudgetDefaultUsd(cc.members);
       return { inputs: { ...s.inputs, costCenters: [...s.inputs.costCenters, cc] } };
     }),
 

@@ -40,7 +40,7 @@ graph TD
 ## Ordered algorithm
 
 1. **Resolve included allowances** $I_B,I_E$ from the `promo` flag (`engine.ts:88-89`).
-2. **Build groups** (`engine.ts:92-132`): one `GroupState` per cost center (applying inheritance for plan mix, per-user limit, budget multiple), then the **unassigned** group with $s_U=\max(0,L-\sum s_{cc})$. Each group precomputes $b_g,e_g,C_g,V_g,A_g,U_g,\beta_g$ (§3).
+2. **Build groups** (`engine.ts:92-132`): one `GroupState` per cost center (applying inheritance for plan mix and per-user limit; the metered budget is an explicit absolute USD value scaled to the CC's seats, §5.3), then the **unassigned** group with $s_U=\max(0,L-\sum s_{cc})$. Each group precomputes $b_g,e_g,C_g,V_g,A_g,U_g,\beta_g$ (§3).
 3. **Aggregate to the enterprise** (`engine.ts:135-141`): $B,E,F,P,\beta_E=\text{enterpriseLimitUsd},M=F+\beta_E,A$ (§5). The default and slider max of $\beta_E$ are derived at $v=0$ (§5.2).
 4. **Partition the pool** (`engine.ts:143-145`): capped CCs get their own $\text{sub}_g=C_g$; the rest form $P_{\text{shared}}$ (§5.1).
 5. **Generate the population** (`engine.ts:148-167`): for each group, mark power users, draw each user's monthly $\mu_i$ and 30 daily shares $x_{i,d}$ from the seeded log-normal (§4).

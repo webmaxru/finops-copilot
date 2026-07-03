@@ -1,6 +1,6 @@
 import { useStore, useSimResult } from '../state/store';
-import { RANGES, SEAT_PRICE } from '../model/defaults';
-import { fmtUsd, fmtCredits, fmtInt, fmtMultiplier, usdToCredits } from '../model/format';
+import { RANGES, SEAT_PRICE, ccBudgetMaxUsd } from '../model/defaults';
+import { fmtUsd, fmtCredits, fmtInt, usdToCredits } from '../model/format';
 import type { CostCenter, GroupSeries } from '../model/types';
 import Slider from './Slider';
 import Toggle from './Toggle';
@@ -144,23 +144,18 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         />
       )}
 
-      <Toggle
-        label="Use default budget (1× license value)"
-        checked={cc.budgetMultipleInherit}
-        onChange={(v) => setPatch({ budgetMultipleInherit: v })}
+      <Slider
+        label="Cost center limit (metered budget)"
+        value={cc.budgetUsd}
+        min={RANGES.ccBudgetUsd.min}
+        max={Math.max(ccBudgetMaxUsd(ccSeats), cc.budgetUsd)}
+        step={RANGES.ccBudgetUsd.step}
+        onChange={(v) => setPatch({ budgetUsd: v })}
+        format={(v) => fmtUsd(v)}
+        caption={`metered budget on top of this CC's licenses · max ${fmtUsd(
+          (series?.licenseValueUsd ?? 0) + cc.budgetUsd,
+        )} (= licenses + budget)`}
       />
-      {!cc.budgetMultipleInherit && (
-        <Slider
-          label="CC metered budget"
-          value={cc.budgetMultiple}
-          min={RANGES.ccBudgetMultiple.min}
-          max={RANGES.ccBudgetMultiple.max}
-          step={RANGES.ccBudgetMultiple.step}
-          onChange={(v) => setPatch({ budgetMultiple: v })}
-          format={fmtMultiplier}
-          caption={`${fmtUsd(cc.budgetMultiple * (series?.licenseValueUsd ?? 0))} metered budget`}
-        />
-      )}
 
       <Toggle
         label="Stop usage at CC budget"

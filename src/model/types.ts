@@ -18,10 +18,8 @@ export interface CostCenter {
   userLimitInherit: boolean;
   /** Per-user total (pool+metered) cap in USD when not inheriting. */
   userLimitUsd: number;
-  /** If true, CC metered budget uses the enterprise limit multiple. */
-  budgetMultipleInherit: boolean;
-  /** Metered budget as a multiple of this CC's license value. */
-  budgetMultiple: number;
+  /** CC metered budget in absolute USD (0..max). Max scales with the CC's seats. */
+  budgetUsd: number;
   /** Hard-stop the CC metered budget when reached. */
   stopUsageBudget: boolean;
   /** Included-usage cap: limit this CC's draw to its own licenses' credits. */

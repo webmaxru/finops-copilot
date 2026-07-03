@@ -34,13 +34,33 @@ export const DEFAULT_TOTAL_LICENSES = 100;
  */
 export const DEFAULT_ENTERPRISE_LIMIT_USD = 2620;
 export const ENTERPRISE_LIMIT_MAX_USD = 25600; // max at the default total users (L = 100)
-export const ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD = ENTERPRISE_LIMIT_MAX_USD / DEFAULT_TOTAL_LICENSES; // $200 / user
+export const ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD = ENTERPRISE_LIMIT_MAX_USD / DEFAULT_TOTAL_LICENSES; // $256 / user
 export function enterpriseLimitMaxUsd(totalLicenses: number): number {
   return ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD * Math.max(0, totalLicenses);
 }
 
-/** Budget multiple a cost center inherits when "use default budget" is on. */
-export const INHERITED_CC_BUDGET_MULTIPLE = 1;
+/** Default seats for a newly created cost center. */
+export const DEFAULT_CC_MEMBERS = 30;
+
+/**
+ * Cost-center metered-budget slider bounds (see docs/formulas.md §5.3). Same
+ * logic as the enterprise limit (§5.2) but scaled to this cost center's own
+ * seats m instead of total users L:
+ *   min          = 0
+ *   default(m)   = enterprise per-seat default × m  ($26.20 / seat)
+ *   max(m)       = enterprise per-seat max     × m  ($256   / seat)
+ * The per-seat default is the enterprise default ($2,620) spread over its 100
+ * licenses; the per-seat max reuses ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD. Like
+ * the enterprise max, ccBudgetMaxUsd recomputes only when the CC's seats change;
+ * the current/user-set value is untouched (kept in range in the UI).
+ */
+export const CC_BUDGET_DEFAULT_PER_SEAT_USD = DEFAULT_ENTERPRISE_LIMIT_USD / DEFAULT_TOTAL_LICENSES; // $26.20 / seat
+export function ccBudgetDefaultUsd(members: number): number {
+  return CC_BUDGET_DEFAULT_PER_SEAT_USD * Math.max(0, members);
+}
+export function ccBudgetMaxUsd(members: number): number {
+  return ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD * Math.max(0, members);
+}
 
 /**
  * Universal user-level budget (ULB) derivation (see docs/formulas.md §2.1):
@@ -77,7 +97,7 @@ export const RANGES = {
   enterpriseLimitUsd: { min: 0, step: 50 }, // max is dynamic in the UI: scales with total users (enterpriseLimitMaxUsd)
   ccMembers: { min: 0, max: 1000, step: 1 },
   ccUserLimitUsd: { min: 0, max: 500, step: 1 },
-  ccBudgetMultiple: { min: 2, max: 5, step: 0.1 },
+  ccBudgetUsd: { min: 0, step: 50 }, // max is dynamic in the UI: scales with CC seats (ccBudgetMaxUsd)
 } as const;
 
 function newId(): string {
@@ -90,13 +110,12 @@ export function makeDefaultCostCenter(index: number): CostCenter {
   return {
     id: newId(),
     name: `Cost center ${index}`,
-    members: 30,
+    members: DEFAULT_CC_MEMBERS,
     planMixInherit: true,
     bizRatio: 0.7,
     userLimitInherit: true,
     userLimitUsd: 50,
-    budgetMultipleInherit: true,
-    budgetMultiple: 2,
+    budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
     stopUsageBudget: true,
     includedCapEnabled: false,
     includedCapMode: 'block',
