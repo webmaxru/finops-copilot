@@ -1,6 +1,6 @@
 import Slider from './Slider';
 import Toggle from './Toggle';
-import { RANGES, SEAT_PRICE } from '../model/defaults';
+import { RANGES, SEAT_PRICE, INDIVIDUAL_LIMIT_MAX_MULTIPLE } from '../model/defaults';
 import { creditsToUsd, fmtCredits, fmtInt, fmtMultiplier, fmtPct, fmtUsd, usdToCredits } from '../model/format';
 import { useSimResult, useStore } from '../state/store';
 
@@ -20,6 +20,11 @@ export default function GlobalControls() {
   const reset = useStore((s) => s.reset);
   const reshuffle = useStore((s) => s.reshuffle);
   const sim = useSimResult();
+
+  // Individual-limit slider max is derived live: 10 x the current average
+  // developer monthly usage (docs/formulas.md §2.1). Keep the current value in
+  // the max so the thumb stays usable if avg usage is lowered below it.
+  const individualLimitMax = creditsToUsd(avgDevUsageCredits) * INDIVIDUAL_LIMIT_MAX_MULTIPLE;
 
   return (
     <section className="panel">
@@ -115,11 +120,11 @@ export default function GlobalControls() {
           label="Individual limit (per-user budget)"
           value={individualLimitUsd}
           min={RANGES.individualLimitUsd.min}
-          max={RANGES.individualLimitUsd.max}
+          max={Math.max(individualLimitMax, individualLimitUsd)}
           step={RANGES.individualLimitUsd.step}
           onChange={(v) => setInput('individualLimitUsd', v)}
           format={(v) => fmtUsd(v)}
-          caption={`= ${fmtCredits(usdToCredits(individualLimitUsd))} per user · hard stop (pool + metered)`}
+          caption={`= ${fmtCredits(usdToCredits(individualLimitUsd))} per user · hard stop · max = 10× avg usage (${fmtUsd(individualLimitMax)})`}
         />
 
         <Slider

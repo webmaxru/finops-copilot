@@ -33,7 +33,7 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 ## Inputs
 
-**Enterprise (global):** total licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), power-user ratio, power-user multiplier (2×–5×), **usage variation**, individual limit ($), enterprise limit ($0–$20k, absolute USD metered budget), promo-allowances toggle, stop-usage toggle.
+**Enterprise (global):** total licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), power-user ratio, power-user multiplier (2×–5×), **usage variation**, individual limit ($; default = avg usage, max = 10× avg usage), enterprise limit ($0–$20k, absolute USD metered budget), promo-allowances toggle, stop-usage toggle.
 
 **Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an included-usage cap (block/overage).
 

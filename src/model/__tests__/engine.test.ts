@@ -5,6 +5,8 @@ import {
   makeDefaultCostCenter,
   DEFAULT_ENTERPRISE_LIMIT_USD,
   ENTERPRISE_LIMIT_MAX_USD,
+  DEFAULT_INDIVIDUAL_LIMIT_USD,
+  INDIVIDUAL_LIMIT_MAX_MULTIPLE,
 } from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
@@ -41,6 +43,17 @@ describe('max-bill formula (licenses + enterprise budget)', () => {
     expect(r.enterpriseBudgetUsd).toBe(5000); // absolute USD metered budget
     // Documented example: 400 licenses ($7,600) + a $5,000 budget => $12,600 max bill
     expect(r.maxBillUsd).toBe(12600);
+  });
+});
+
+describe('individual-limit default & max derivation', () => {
+  it('default = average developer monthly usage (USD); slider max multiple is 10x', () => {
+    const inp = DEFAULT_INPUTS();
+    // Default individual limit = avg developer monthly usage converted to USD.
+    expect(DEFAULT_INDIVIDUAL_LIMIT_USD).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
+    expect(inp.individualLimitUsd).toBeCloseTo(inp.avgDevUsageCredits * 0.01, 6);
+    // Slider max (applied in the UI) = 10 x avg developer monthly usage.
+    expect(INDIVIDUAL_LIMIT_MAX_MULTIPLE).toBe(10);
   });
 });
 

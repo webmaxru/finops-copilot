@@ -28,6 +28,15 @@ $L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathr
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), budget multiple (inherit or own $k_{cc}$), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
+### 2.1 Individual limit derived from average developer usage — `defaults.ts` (`DEFAULT_INDIVIDUAL_LIMIT_USD`, `INDIVIDUAL_LIMIT_MAX_MULTIPLE`), UI max in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
+
+The universal per-user limit $B_{\text{ind}}$ is derived from the average developer monthly usage $\bar u$ (credits), converted to USD via $c$:
+$$B_{\text{ind}}^{\text{default}} = \bar u \cdot c, \qquad B_{\text{ind}}^{\max} = 10\,(\bar u \cdot c)$$
+- **Default** (initial value / on reset) uses the default $\bar u$: $5000\cdot\$0.01=\$50$.
+- **Slider max** tracks the **current** avg-usage slider live: $10\times(\bar u\cdot c)$; at defaults $=\$500$. If $\bar u$ is lowered below the current limit, the UI keeps the current value in range so the thumb stays usable (same pattern as cost-center members, §9).
+
+This is a modeling choice — GitHub has no formula for a per-user budget amount; it only requires that user-level budgets hard-stop total consumption [B4].
+
 ---
 
 ## 3. Group construction — `makeGroup`, `engine.ts:57-84`

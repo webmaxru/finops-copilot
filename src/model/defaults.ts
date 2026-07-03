@@ -34,6 +34,16 @@ export const ENTERPRISE_LIMIT_MAX_USD = 20000;
 /** Budget multiple a cost center inherits when "use default budget" is on. */
 export const INHERITED_CC_BUDGET_MULTIPLE = 1;
 
+/**
+ * Individual (per-user) limit derivation (see docs/formulas.md §2.1):
+ *   default    = average developer monthly usage, in USD  (ū · $0.01)
+ *   slider max = INDIVIDUAL_LIMIT_MAX_MULTIPLE × average developer monthly usage
+ * The max is applied live from the current avg-usage slider in the UI.
+ */
+export const DEFAULT_AVG_DEV_USAGE_CREDITS = 5000;
+export const INDIVIDUAL_LIMIT_MAX_MULTIPLE = 10;
+export const DEFAULT_INDIVIDUAL_LIMIT_USD = DEFAULT_AVG_DEV_USAGE_CREDITS * CREDIT_USD;
+
 /** Slider bounds for the UI controls. */
 export const RANGES = {
   totalLicenses: { min: 1, max: 1000, step: 1 },
@@ -43,7 +53,7 @@ export const RANGES = {
   powerRatio: { min: 0, max: 1, step: 0.01 },
   powerMultiplier: { min: 2, max: 5, step: 0.1 },
   usageVariation: { min: 0, max: 1, step: 0.01 },
-  individualLimitUsd: { min: 0, max: 500, step: 1 },
+  individualLimitUsd: { min: 0, step: 1 }, // max is dynamic in the UI: 10 x avg dev usage
   enterpriseLimitUsd: { min: 0, max: ENTERPRISE_LIMIT_MAX_USD, step: 50 },
   ccMembers: { min: 0, max: 1000, step: 1 },
   ccUserLimitUsd: { min: 0, max: 500, step: 1 },
@@ -79,11 +89,11 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     totalLicenses: 100,
     bizRatio: 0.7,
     activePct: 0.8,
-    avgDevUsageCredits: 5000,
+    avgDevUsageCredits: DEFAULT_AVG_DEV_USAGE_CREDITS,
     powerRatio: 0.2,
     powerMultiplier: 3,
     usageVariation: 0.3,
-    individualLimitUsd: 50,
+    individualLimitUsd: DEFAULT_INDIVIDUAL_LIMIT_USD,
     enterpriseLimitUsd: DEFAULT_ENTERPRISE_LIMIT_USD,
     promo: false,
     stopUsageBudgets: true,
