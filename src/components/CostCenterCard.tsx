@@ -30,12 +30,24 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const cc = useStore((s) => s.inputs.costCenters.find((c) => c.id === id));
   const update = useStore((s) => s.updateCostCenter);
   const remove = useStore((s) => s.removeCostCenter);
+  const totalLicenses = useStore((s) => s.inputs.totalLicenses);
+  const costCenters = useStore((s) => s.inputs.costCenters);
   const sim = useSimResult();
 
   if (!cc) return null;
 
   const series: GroupSeries | undefined = sim.costCenters.find((g) => g.key === id);
   const setPatch = (patch: Partial<CostCenter>) => update(id, patch);
+
+  // A seat belongs to only one cost center, so members across all cost centers
+  // cannot exceed total enterprise licenses. Cap this slider at the seats not
+  // claimed by other cost centers (keep the current value if it already exceeds
+  // that, e.g. after total licenses was lowered, so the thumb stays usable).
+  const othersMembers = costCenters
+    .filter((c) => c.id !== id)
+    .reduce((sum, c) => sum + c.members, 0);
+  const available = Math.max(0, totalLicenses - othersMembers);
+  const membersMax = Math.min(RANGES.ccMembers.max, Math.max(available, cc.members));
 
   return (
     <article
@@ -74,13 +86,13 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         label="Members (seats)"
         value={cc.members}
         min={RANGES.ccMembers.min}
-        max={RANGES.ccMembers.max}
+        max={membersMax}
         step={RANGES.ccMembers.step}
-        onChange={(v) => setPatch({ members: v })}
+        onChange={(v) => setPatch({ members: Math.min(v, membersMax) })}
         format={fmtInt}
-        caption={`license value ${fmtUsd(series?.licenseValueUsd ?? 0)} · funds ${fmtCredits(
-          series?.poolCredits ?? 0,
-        )}`}
+        caption={`max ${fmtInt(membersMax)} of ${fmtInt(totalLicenses)} licenses · license value ${fmtUsd(
+          series?.licenseValueUsd ?? 0,
+        )} · funds ${fmtCredits(series?.poolCredits ?? 0)}`}
       />
 
       <Toggle

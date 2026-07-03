@@ -31,12 +31,13 @@ export const useStore = create<Store>((set) => ({
   setInput: (key, value) => set((s) => ({ inputs: { ...s.inputs, [key]: value } })),
 
   addCostCenter: () =>
-    set((s) => ({
-      inputs: {
-        ...s.inputs,
-        costCenters: [...s.inputs.costCenters, makeDefaultCostCenter(s.inputs.costCenters.length + 1)],
-      },
-    })),
+    set((s) => {
+      const assigned = s.inputs.costCenters.reduce((sum, c) => sum + c.members, 0);
+      const remaining = Math.max(0, s.inputs.totalLicenses - assigned);
+      const cc = makeDefaultCostCenter(s.inputs.costCenters.length + 1);
+      cc.members = Math.min(cc.members, remaining);
+      return { inputs: { ...s.inputs, costCenters: [...s.inputs.costCenters, cc] } };
+    }),
 
   removeCostCenter: (id) =>
     set((s) => ({

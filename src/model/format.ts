@@ -11,7 +11,7 @@ export function fmtUsd(usd: number, digits = 0): string {
 }
 
 export function fmtCredits(credits: number): string {
-  return `${Math.round(credits).toLocaleString('en-US')} cr`;
+  return `${Math.round(credits).toLocaleString('en-US')} AICR`;
 }
 
 export function fmtInt(n: number): string {
