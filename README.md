@@ -93,3 +93,5 @@ Every formula and its interconnections are formally documented in [`docs/`](./do
 - [`docs/billing-model.md`](./docs/billing-model.md) — the GitHub rules the engine is built on (and the documented mechanics it deliberately omits)
 - [`docs/simulation-engine.md`](./docs/simulation-engine.md) — data-flow graph and the end-to-end algorithm
 - [`docs/references.md`](./docs/references.md) — consolidated citation list
+
+> **Contributing:** [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) (and [`AGENTS.md`](./AGENTS.md)) require that any calculation change and its `docs/` update ship together, that website changes update the docs when relevant, and that every change is validated against official GitHub documentation.
