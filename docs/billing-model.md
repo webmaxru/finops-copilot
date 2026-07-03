@@ -58,7 +58,9 @@ Per request: **user-level budget → shared pool → cost-center budget → orga
 - **A resource (seat) belongs to only one cost center at a time** — therefore the sum of cost-center members cannot exceed total licenses. [B10] *(This is the rule enforced by the members-slider caps.)*
 - **Cost-center budget** caps that CC's metered charges. [B5]
 - **Cost-center per-user budget** (`multi_user_cost_center`) sets one per-user amount for all members; caps total (pool+metered); **API-only today**. [B12][B9][B4]
-- **Included-usage cap** (`ai_credit_pool_enabled`) limits a CC's draw from the shared pool to the credits **its own licenses fund** — GitHub **auto-computes** this amount from the CC's licenses (the admin enters no number); when hit, members are **blocked** or spill to **overage**. **API-only today**. [B13][B8][B10]
+- **Included-usage cap** (`ai_credit_pool_enabled`) is a control **separate from** the cost-center budget. It caps a CC's draw from the shared pool **before** the metered phase, limiting it to the credits **its own licenses fund** — GitHub **auto-computes** this amount from the CC's licenses (the admin enters no number). **You explicitly choose what happens when the cap is hit: `block` members, or let usage continue as paid `overage`** — this block/overage choice lives on the cap itself, **not** on the metered budget. **API-only today** (settings-UI management "coming soon"). [B13][B8][B10]
+- The two cost-center controls are **layered, not alternatives**: the included-usage cap governs the **pool (included)** phase (block/overage), while the **cost-center budget** governs the **metered** phase after the pool is exhausted (hard-stop only if "Stop usage when budget limit is reached" is on). You can apply both to the same CC. [B4][B5]
+- **`overage` is itself gated by the enterprise "AI credit paid usage" policy**: additional (metered) usage only occurs if that policy is enabled; if it is off, usage is blocked once the pool is exhausted regardless of budgets — so choosing "overage" still yields a block when paid usage is disabled. Once overage enters the metered phase it is then subject to the CC → org → enterprise metered budgets. [B4]
 - Enabling an included-usage cap does **not** redistribute the shared pool; other groups keep drawing from the remaining shared pool. [B10]
 
 ## 7. Rules the engine intentionally does NOT implement (extension points)
@@ -80,6 +82,9 @@ Paid plans get **−10%** on model cost when using auto model selection (× 0.90
 Requests under data-residency enforcement consume **+10%** AI credits (× 1.10). [B15]
 
 If added, apply per interaction after computing base credits: `credits × 0.90 (auto) × 1.10 (residency)`. These would multiply the per-user usage in `formulas.md` §4 before the daily accounting loop.
+
+### 7.4 Enterprise "AI credit paid usage" policy gate  **[Fact, not implemented]**
+Additional (metered / `overage`) usage only occurs if the enterprise/organization **"AI credit paid usage"** policy is enabled. When it is disabled, usage is **blocked** as soon as the shared pool is exhausted — regardless of any budget, and regardless of an included-usage cap set to `overage`. [B4] The simulator assumes paid usage is **allowed** and instead models hard stops via the budget "stop usage" flags (`formulas.md` §6c) and the included-cap block mode. Extension point: a global "allow paid usage" toggle that, when off, forces all post-pool demand to block (equivalent to every budget being $0 with stop-usage on).
 
 ## Citations
 
