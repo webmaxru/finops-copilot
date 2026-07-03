@@ -79,6 +79,17 @@ src/
   components/ GlobalControls, CostCenterList/Card, Timeline, PlayControls,
               KpiCards, BurndownChart, CostCenterCharts, Warnings, AssumptionsFooter,
               Slider, Toggle
+docs/         formal calculation reference (formulas, billing model, engine, citations)
 ```
 
 The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so timeline scrubbing/animation is cheap.
+
+## Calculation documentation
+
+Every formula and its interconnections are formally documented in [`docs/`](./docs/), with each billing rule cited to official GitHub documentation and each item tagged **[Fact]** (GitHub-documented), **[Derived]**, or **[Assumption]** (simulator modeling choice):
+
+- [`docs/README.md`](./docs/README.md) — index, notation, scope boundary
+- [`docs/formulas.md`](./docs/formulas.md) — every symbol and formula with code refs + sources
+- [`docs/billing-model.md`](./docs/billing-model.md) — the GitHub rules the engine is built on (and the documented mechanics it deliberately omits)
+- [`docs/simulation-engine.md`](./docs/simulation-engine.md) — data-flow graph and the end-to-end algorithm
+- [`docs/references.md`](./docs/references.md) — consolidated citation list
