@@ -1,6 +1,6 @@
 # References
 
-Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B17]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07 against the June 1 2026 usage-based billing model. All sources are `docs.github.com` or GitHub's official product-release channel `github.blog/changelog`.
+Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B18]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07 against the June 1 2026 usage-based billing model. All sources are `docs.github.com` or GitHub's official product-release channel `github.blog/changelog`.
 
 | Tag | Establishes | URL |
 |-----|-------------|-----|
@@ -21,6 +21,7 @@ Every billing rule in these docs is a **[Fact]** backed by an official GitHub so
 | **B15** | Data-residency / FedRAMP-compliant requests: +10% AI credit consumption | https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/github-copilot-with-data-residency |
 | **B16** | Identify power users and set individual budget overrides (higher per-user budget that overrides the universal budget) | https://docs.github.com/en/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides |
 | **B17** | Copilot policies are governance controls in the enterprise **"AI controls"** tab / organization settings (feature, model, agent & usage policies) | https://docs.github.com/en/copilot/concepts/policies |
+| **B18** | Enterprise-scoped budgets can **exclude cost-center usage** (single enterprise-budget setting; CC usage excluded collectively; default includes; REST + audit log) | https://github.blog/changelog/2026-01-19-enterprise-scoped-budgets-that-exclude-cost-center-usage-in-public-preview/ |
 
 ## Additional context (not tagged inline)
 

@@ -40,7 +40,7 @@ export interface EnterpriseInputs {
   universalUlbUsd: number; // universal user-level budget for normal users (USD)
   enterpriseLimitUsd: number; // absolute USD enterprise metered budget (0..max)
   promo: boolean; // promotional included allowances (3000/7000)
-  allowPaidUsage: boolean; // enterprise/org "AI credit paid usage" policy: allow any metered usage after the pool
+  enterpriseBudgetExcludesCostCenters: boolean; // enterprise budget governs only non-cost-center usage
   stopUsageBudgets: boolean; // hard-stop enterprise/CC metered budgets
   seed: number; // PRNG seed for deterministic sampling
   costCenters: CostCenter[];

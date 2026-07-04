@@ -217,42 +217,40 @@ describe('stop-usage caps metered at the enterprise budget', () => {
   });
 });
 
-describe('AI credit paid usage policy (global metered gate)', () => {
-  it('blocks all post-pool usage and yields zero metered when paid usage is off', () => {
-    const off = runSimulation(
+describe('enterprise budget that excludes cost-center usage', () => {
+  it('lets cost centers spend beyond the enterprise budget; only non-CC usage is capped', () => {
+    // 20 heavy users: 10 in a cost center (own $2,000 budget), 10 unassigned.
+    // Pool = 20*1900 = $380; metered demand ~ $3,420. Enterprise budget = $500.
+    const cc = { ...makeDefaultCostCenter(1), members: 10, budgetUsd: 2000, stopUsageBudget: true };
+    const scenario = (excludes: boolean) =>
       base({
-        totalLicenses: 10,
+        totalLicenses: 20,
         bizRatio: 1,
         activePct: 1,
-        avgDevUsageCredits: 19000, // heavy: demand ($1,900) far exceeds the $190 pool
+        avgDevUsageCredits: 19000, // heavy
         powerUsers: 0,
         universalUlbUsd: 500, // not binding
         usageVariation: 0,
-        allowPaidUsage: false,
-      }),
-    );
-    // No metered usage is possible: everything past the included pool is blocked.
-    expect(off.monthEndMeteredUsd).toBeCloseTo(0, 6);
-    expect(off.monthEndBlockedUsers).toBe(off.activeUsers);
-    // Worst-case bill collapses to license fees only (the budget can't be reached).
-    expect(off.maxBillUsd).toBeCloseTo(off.licenseFeesUsd, 6);
+        enterpriseLimitUsd: 500,
+        stopUsageBudgets: true,
+        enterpriseBudgetExcludesCostCenters: excludes,
+        costCenters: [cc],
+      });
 
-    // Same scenario with paid usage on (budget not binding) DOES meter.
-    const on = runSimulation(
-      base({
-        totalLicenses: 10,
-        bizRatio: 1,
-        activePct: 1,
-        avgDevUsageCredits: 19000,
-        powerUsers: 0,
-        universalUlbUsd: 500,
-        usageVariation: 0,
-        allowPaidUsage: true,
-        stopUsageBudgets: false,
-        enterpriseLimitUsd: 1e9,
-      }),
-    );
-    expect(on.monthEndMeteredUsd).toBeGreaterThan(0);
+    const included = runSimulation(scenario(false));
+    const excluded = runSimulation(scenario(true));
+
+    // Included (default): the enterprise budget caps ALL metered at $500.
+    expect(included.monthEndMeteredUsd).toBeCloseTo(500, 0);
+    expect(included.maxBillUsd).toBeCloseTo(380 + 500, 6); // licenses + enterprise budget
+
+    // Excluded: the $500 enterprise budget caps only the unassigned users, while
+    // the cost center spends under its own $2,000 budget on top — so total metered
+    // is well above $500.
+    expect(excluded.monthEndMeteredUsd).toBeGreaterThan(included.monthEndMeteredUsd);
+    expect(excluded.monthEndMeteredUsd).toBeGreaterThan(1500);
+    // Max bill now includes the cost-center budget on top of the enterprise budget.
+    expect(excluded.maxBillUsd).toBeCloseTo(380 + 500 + 2000, 6);
   });
 });
 

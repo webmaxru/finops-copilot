@@ -26,11 +26,11 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 ## 2. Inputs — `src/model/types.ts` (`EnterpriseInputs`), defaults in `defaults.ts:52-71`
 
-$L,\ \rho_B,\ \alpha,\ \bar u,\ n_{\text{pow}},\ B_{\text{pow}},\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{paid},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ n_{\text{pow}}{=}10,\ B_{\text{pow}}{=}\$190,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$2{,}620,\ \mathrm{promo}{=}\text{false},\ \mathrm{paid}{=}\text{true},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (§5.2); $n_{\text{pow}}$ is the number of power users and $B_{\text{pow}}$ their individual budget (§2.1); $\mathrm{paid}$ is the enterprise "AI credit paid usage" policy (§6c).
+$L,\ \rho_B,\ \alpha,\ \bar u,\ n_{\text{pow}},\ B_{\text{pow}},\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{exCC},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ n_{\text{pow}}{=}10,\ B_{\text{pow}}{=}\$190,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$2{,}620,\ \mathrm{promo}{=}\text{false},\ \mathrm{exCC}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (§5.2); $n_{\text{pow}}$ is the number of power users and $B_{\text{pow}}$ their individual budget (§2.1); $\mathrm{exCC}$ is the enterprise-budget "exclude cost-center usage" flag (§6c). The engine assumes the "AI credit paid usage" policy is enabled (§5.7 of `billing-model.md`).
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
-> **Design invariant (governance vs. what-if).** Every input that changes the *simulated outcome* is exactly one of two kinds: **(1) a behavioral / sizing what-if assumption** the analyst makes about their own org — total users, plan mix, active %, usage level $\bar u$ and variation $v$, power-user count $\phi$ — which has **no** GitHub setting and is tagged **[Assumption]**; or **(2) a governance control** — the universal / cost-center / individual **user-level budgets**, the **cost-center and enterprise metered budgets**, their **"stop usage"** flags, and the cost-center **included-usage cap** with its **block/overage** choice — each of which **must** correspond to a real GitHub governance control exposed in the **UI or REST API** and is cited with a `[Bn]` tag. No knob that affects spend or blocking may model a mechanism GitHub does not actually offer; the provenance table below and §5–§6 enforce this by tagging every governance control **Doc [Bn]** and every assumption **A**.
+> **Design invariant (governance vs. what-if).** Every input that changes the *simulated outcome* is exactly one of two kinds: **(1) a behavioral / sizing what-if assumption** the analyst makes about their own org — total users, plan mix, active %, usage level $\bar u$ and variation $v$, power-user count $n_{\text{pow}}$ — which has **no** GitHub setting and is tagged **[Assumption]**; or **(2) a governance control** — the universal / cost-center / individual **user-level budgets**, the **cost-center and enterprise metered budgets**, their **"stop usage"** flags, the cost-center **included-usage cap** with its **block/overage** choice, and the enterprise-budget **"exclude cost-center usage"** flag — each of which **must** correspond to a real GitHub governance control exposed in the **UI or REST API** and is cited with a `[Bn]` tag. No knob that affects spend or blocking may model a mechanism GitHub does not actually offer; the provenance table below and §5–§6 enforce this by tagging every governance control **Doc [Bn]** and every assumption **A**.
 
 ### 2.1 Universal ULB & power-user budget — `defaults.ts` (`DEFAULT_UNIVERSAL_ULB_USD`, `UNIVERSAL_ULB_MAX_MULTIPLE`, `DEFAULT_POWER_USER_BUDGET_USD`, `POWER_USER_BUDGET_MIN/MAX_USD`), UI in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
 
@@ -63,7 +63,8 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 | Universal ULB $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
 | Enterprise limit $\beta_E$ | $0 · **A** | $\$256\cdot L$ = $25,600 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $2,620 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$256\times L$; recomputed only when total users changes) |
 | Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
-| AI credit paid usage $\mathrm{paid}$ | — | — | true · **A** | enterprise/org policy gating **all** metered usage (§6c); when false, every post-pool request blocks. Default **A** (GitHub's real default not asserted); that the control exists is **Doc** [B1][B4][B17] |
+| AI credit paid usage | — | — | (assumed on) | **not a control**; the engine assumes the enterprise "AI credit paid usage" policy is enabled (§5.7 billing-model). **Doc** it exists [B1][B4] |
+| Exclude CC usage $\mathrm{exCC}$ | — | — | false · **A** | enterprise-budget flag (§6c): when true, the enterprise budget caps only non-CC usage and CCs spend under their own budgets on top. Default off matches GitHub (existing budgets include CC usage). **Doc** the control exists [B18] |
 | Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
 | Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
 
@@ -146,7 +147,7 @@ B=\textstyle\sum_g b_g,\quad E=\textstyle\sum_g e_g & & \text{total seats by pla
 F &= B\,p_B + E\,p_E & &\text{license fees — [Fact] [B3]}\\
 P &= \textstyle\sum_g C_g & &\text{total included pool — [Fact] [B1]}\\
 \beta_E &= \text{enterpriseLimitUsd} & &\text{enterprise metered budget (absolute USD) — [Assumption]}\\
-M &= F + \beta_E & &\text{max possible bill — [Fact] [B5]}\\
+M &= F + \beta_E + \big(\mathrm{exCC}\ ?\ \textstyle\sum_{cc}\beta_{cc}:0\big) & &\text{max possible bill — [Fact] [B5][B18]}\\
 A &= \textstyle\sum_g A_g & &\text{active users}
 \end{aligned}
 $$
@@ -199,18 +200,18 @@ $$\text{metered credits}=\begin{cases}\textsc{ApplyMetered}(g,\ell) & \text{capM
 Non-capped group (shared pool):
 $$\mathrm{inc}=\min(\sigma_{i,d},\ P_{\text{shared}}),\quad P_{\text{shared}}\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc};\qquad \text{metered credits}=\textsc{ApplyMetered}(g,\ell)$$
 
-**(c) `ApplyMetered(g, credits)`** — `engine.ts:181-199` — **[Fact]** [B1][B4][B5]
+**(c) `ApplyMetered(g, credits)`** — `engine.ts:183-201` — **[Fact]** [B4][B5][B18]
 $$
 \begin{aligned}
-\text{if } \neg\,\mathrm{paid}:\ & \textbf{return } 0 && \text{("AI credit paid usage" policy off — no metered anywhere)}\\
 a &= \text{credits}\cdot c && \text{(requested USD)}\\
 \text{if } \beta_g\neq\text{null} \wedge \mathrm{stop}_g:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_g-\mathrm{Me}_g)\big) && \text{CC budget cap}\\
-\text{if } \mathrm{stop}_E:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_E-\mathrm{Me}_E)\big) && \text{enterprise budget cap}\\
-& \mathrm{Me}_g\mathrel{+}=a,\quad \mathrm{Me}_E\mathrel{+}=a && \text{commit}\\
+\text{let } \kappa_g &= \neg\,\mathrm{exCC}\ \vee\ \text{kind}(g)\neq\text{cc} && \text{does $g$ count toward the enterprise budget?}\\
+\text{if } \mathrm{stop}_E \wedge \kappa_g:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_E-\mathrm{Me}_E)\big) && \text{enterprise budget cap}\\
+& \mathrm{Me}_g\mathrel{+}=a;\quad \text{if } \kappa_g:\ \mathrm{Me}_E\mathrel{+}=a && \text{commit}\\
 & \textbf{return } a/c && \text{(metered credits actually billed)}
 \end{aligned}
 $$
-The leading $\neg\,\mathrm{paid}$ guard is the enterprise/org **"AI credit paid usage"** policy (§5.6 of `billing-model.md`): when off, **no** metered credits are ever served, so every user's post-pool demand is unmet and they are blocked (§6d). It is a **global** gate, applied identically to every group — not a cost-center control. [B1][B4] The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6]
+$\mathrm{exCC}$ is the enterprise **"exclude cost-center usage"** flag (§5.6 of `billing-model.md`): when on, cost-center groups ($\text{kind}=\text{cc}$) **skip** the enterprise-budget cap and do **not** accrue against $\mathrm{Me}_E$, so the enterprise budget bounds only non-cost-center usage while each CC is bounded solely by its own $\beta_g$. [B18] The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6] The simulator assumes the enterprise/org "AI credit paid usage" policy is **enabled** (metered usage always allowed; §5.7 of `billing-model.md`). [B1]
 
 **(d) Commit user & blocked determination** — `engine.ts:228-240` — **[Fact]** [B4][B16]
 $$\text{spent}=\mathrm{inc}+\text{metered credits};\quad \mathrm{cum}_i\mathrel{+}=\text{spent};\quad \mathrm{In}_g\mathrel{+}=\mathrm{inc}\cdot c$$

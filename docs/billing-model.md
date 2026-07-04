@@ -52,10 +52,14 @@ Budgets exist at **enterprise**, **organization**, **repository**, **cost center
 ### 5.5 Evaluation order
 Per request: **user-level budget → shared pool → cost-center budget → organization budget → enterprise budget**, and the budget with the **least remaining headroom blocks first**. [B4][B5]
 
-### 5.6 AI credit paid usage policy (global gate — modeled)
-- A separate enterprise/organization policy governs whether **any** additional (metered) usage is allowed once the shared pool is exhausted. When disabled, **all** post-pool usage is **blocked** for every user regardless of budgets; when enabled, metered usage proceeds (then capped by budgets). [B1][B4]
-- It is a **global** gate — **not** a cost-center control and **not** part of the included-usage cap. An `overage` spill (§6) simply enters the same metered phase this policy governs.
-- **Modeled** in the engine as the `allowPaidUsage` input (UI toggle "Allow AI credit paid usage (metered)"; default on). When off, `ApplyMetered` returns 0 (`engine.ts`), so all post-pool demand blocks and the worst-case bill collapses to license fees. It maps to a real GitHub governance control (enterprise **"AI controls"**), satisfying the design invariant in `formulas.md` §2. [B17]
+### 5.6 Enterprise budget scope — exclude cost-center usage  **[Fact — modeled]**
+- An **enterprise-scoped** budget can be configured to **exclude cost-center usage**. When enabled, the enterprise budget governs **only** usage that is **not** attributed to a cost center ("Enterprise Only" usage); each cost center's metered spend is then bounded **solely by its own cost-center budget**, on top of the enterprise budget. [B18]
+- This is a **single enterprise-level setting on the enterprise budget** — **not** a per-cost-center control. It excludes **all** cost-center usage collectively; you cannot exclude individual cost centers selectively. Existing enterprise budgets **include** cost-center usage by **default**; the exclusion is opt-in. Available via the REST API, changes are audit-logged. [B18]
+- Effect on the max-bill rule (§5.3): with exclusion on, the worst-case bill becomes **license fees + enterprise budget + Σ(cost-center budgets)** — cost centers add their budgets on top of the enterprise budget instead of being capped within it.
+- **Modeled** as the `enterpriseBudgetExcludesCostCenters` input (UI toggle "Enterprise budget excludes cost-center usage"; default off). In `engine.ts` `ApplyMetered`, cost-center groups then skip the enterprise-budget cap and do not accrue against it; only non-cost-center groups do.
+
+### 5.7 AI credit paid usage policy (assumed enabled)  **[Assumption]**
+The enterprise/org **"AI credit paid usage"** policy globally governs whether **any** metered usage is allowed once the pool is exhausted (if off, all post-pool usage blocks). [B1][B4] It is a **global** gate, **not** a cost-center control. The simulator **assumes it is enabled** (metered usage always occurs, then bounded by budgets) and does **not** expose it as a control; hard stops are modeled via budget "stop usage" flags and the included-cap block mode. [B17]
 
 ## 6. Cost centers
 

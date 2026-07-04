@@ -137,9 +137,15 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const licenseFeesUsd = totalBizSeats * SEAT_PRICE.business + totalEntSeats * SEAT_PRICE.enterprise;
   const poolCredits = groups.reduce((s, g) => s + g.carveoutCredits, 0);
   const enterpriseBudgetUsd = inp.enterpriseLimitUsd;
-  // With paid usage disabled there is no metered spend, so the worst-case bill is
-  // just the license fees (the enterprise budget cannot be reached).
-  const maxBillUsd = licenseFeesUsd + (inp.allowPaidUsage ? enterpriseBudgetUsd : 0);
+  // Worst-case bill = license fees + the enterprise metered budget. When the
+  // enterprise budget EXCLUDES cost-center usage, each cost center can spend up
+  // to its own budget on top of the enterprise budget, so those add in. [B5][B18]
+  const ccBudgetSumUsd = groups.reduce(
+    (s, g) => s + (g.kind === 'cc' && g.ccBudgetUsd != null ? g.ccBudgetUsd : 0),
+    0,
+  );
+  const maxBillUsd =
+    licenseFeesUsd + enterpriseBudgetUsd + (inp.enterpriseBudgetExcludesCostCenters ? ccBudgetSumUsd : 0);
   const activeUsers = groups.reduce((s, g) => s + g.activeCount, 0);
 
   // Shared pool = credits funded by seats NOT in a capped cost center.
@@ -181,21 +187,22 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const entDays: DaySnapshot[] = [];
 
   const applyMetered = (g: GroupState, credits: number): number => {
-    // Enterprise/org "AI credit paid usage" policy: if paid usage is not allowed,
-    // NO metered usage occurs anywhere once the pool is exhausted — all post-pool
-    // demand is blocked, regardless of budgets. This is a global gate, not a
-    // cost-center control (docs/billing-model.md §6a). [B1][B4]
-    if (!inp.allowPaidUsage) return 0;
     let allowedUsd = credits * CREDIT_USD;
+    // Cost-center metered budget cap (when the CC's stop flag is on).
     if (g.ccBudgetUsd != null && g.stopUsageBudget) {
       allowedUsd = Math.min(allowedUsd, Math.max(0, g.ccBudgetUsd - g.meteredUsd));
     }
-    if (inp.stopUsageBudgets) {
+    // Enterprise metered budget cap. When the enterprise budget is configured to
+    // EXCLUDE cost-center usage, it governs only non-cost-center ("Enterprise
+    // Only") usage; cost-center groups are then bounded solely by their own CC
+    // budgets and do not consume (or count against) the enterprise budget. [B18]
+    const countsTowardEnterprise = !inp.enterpriseBudgetExcludesCostCenters || g.kind !== 'cc';
+    if (inp.stopUsageBudgets && countsTowardEnterprise) {
       allowedUsd = Math.min(allowedUsd, Math.max(0, enterpriseBudgetUsd - entMeteredUsd));
     }
     if (allowedUsd <= 0) return 0;
     g.meteredUsd += allowedUsd;
-    entMeteredUsd += allowedUsd;
+    if (countsTowardEnterprise) entMeteredUsd += allowedUsd;
     return allowedUsd / CREDIT_USD;
   };
 
