@@ -1,37 +1,15 @@
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  Legend,
-  Line,
-  ReferenceLine,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { useSimResult, useStore } from '../state/store';
-import { fmtUsd } from '../model/format';
 import type { DaySnapshot } from '../model/types';
+import SpendChart, { type SpendPoint } from './SpendChart';
 
-type BurndownPoint = {
-  day: number;
-  poolUsd: number;
-  meteredUsd: number;
-  billUsd: number;
-};
-
-function toPoint(x: DaySnapshot): BurndownPoint {
+function toPoint(x: DaySnapshot): SpendPoint {
   return {
     day: x.day,
-    poolUsd: x.poolRemaining * 0.01,
+    includedUsd: x.poolRemaining * 0.01,
     meteredUsd: x.meteredUsd,
     billUsd: x.cumulativeBillUsd,
+    blocked: x.blockedUsers,
   };
-}
-
-function formatUsdValue(value: unknown) {
-  return fmtUsd(Number(value));
 }
 
 export default function BurndownChart() {
@@ -41,58 +19,19 @@ export default function BurndownChart() {
 
   return (
     <section className="panel">
-      <h2 style={{ marginTop: 0 }}>Included pool draining vs. metered spend</h2>
-      <div style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis
-              dataKey="day"
-              label={{ value: 'Day', position: 'insideBottom', offset: -4, fill: 'var(--muted)' }}
-              tick={{ fill: 'var(--muted)' }}
-            />
-            <YAxis tickFormatter={formatUsdValue} tick={{ fill: 'var(--muted)' }} />
-            <Tooltip formatter={formatUsdValue} />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey="poolUsd"
-              name="Included pool left ($)"
-              stroke="var(--pool)"
-              fill="var(--pool)"
-              fillOpacity={0.3}
-            />
-            <Area
-              type="monotone"
-              dataKey="meteredUsd"
-              name="Metered spend ($)"
-              stroke="var(--metered)"
-              fill="var(--metered)"
-              fillOpacity={0.3}
-            />
-            <Line
-              type="monotone"
-              dataKey="billUsd"
-              name="Cumulative bill ($)"
-              stroke="var(--primary)"
-              dot={false}
-            />
-            <ReferenceLine
-              y={sim.enterpriseBudgetUsd}
-              stroke="var(--metered)"
-              strokeDasharray="4 4"
-              label="Ent metered budget"
-            />
-            <ReferenceLine
-              y={sim.maxBillUsd}
-              stroke="var(--limit)"
-              strokeDasharray="4 4"
-              label="max bill"
-            />
-            <ReferenceLine x={day} stroke="var(--primary)" />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
+      <h2 style={{ marginTop: 0 }}>Enterprise: included pool draining vs. metered spend</h2>
+      <SpendChart
+        data={data}
+        day={day}
+        includedName="Included pool left ($)"
+        activeUsers={sim.activeUsers}
+        height={300}
+        refLines={[
+          { y: sim.enterpriseBudgetUsd, label: 'Ent metered budget', color: 'var(--metered)' },
+          { y: sim.maxBillUsd, label: 'max bill', color: 'var(--limit)' },
+        ]}
+      />
     </section>
   );
 }
+

@@ -1,70 +1,62 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { useSimResult, useStore } from '../state/store';
-import { fmtUsd } from '../model/format';
-import type { GroupSeries } from '../model/types';
+import { fmtInt, fmtUsd } from '../model/format';
+import type { DaySnapshot, GroupSeries } from '../model/types';
+import SpendChart, { type SpendPoint } from './SpendChart';
 
-type CostCenterPoint = {
-  name: string;
-  included: number;
-  metered: number;
-};
-
-function formatUsdValue(value: unknown) {
-  return fmtUsd(Number(value));
-}
-
-function toPoint(group: GroupSeries, day: number): CostCenterPoint {
-  const index = Math.min(Math.max(day, 1), 30) - 1;
-  const snap = group.days[index];
-
+function toPoint(x: DaySnapshot): SpendPoint {
   return {
-    name: group.label,
-    included: snap?.includedConsumedUsd ?? 0,
-    metered: snap?.meteredUsd ?? 0,
+    day: x.day,
+    includedUsd: x.includedConsumedUsd,
+    meteredUsd: x.meteredUsd,
+    billUsd: x.cumulativeBillUsd,
+    blocked: x.blockedUsers,
   };
 }
 
 export default function CostCenterCharts() {
   const sim = useSimResult();
   const day = useStore((s) => s.day);
-  const groups = [...sim.costCenters, sim.unassigned].filter((g) => g.seats > 0);
-  const data = groups.map((g) => toPoint(g, day));
-  const height = Math.max(120, groups.length * 46);
+  const costCenters = useStore((s) => s.inputs.costCenters);
+  const groups: GroupSeries[] = [...sim.costCenters, sim.unassigned].filter((g) => g.seats > 0);
+
+  const budgetFor = (g: GroupSeries): number | null =>
+    g.kind === 'cc' ? costCenters.find((c) => c.id === g.key)?.budgetUsd ?? null : null;
+
+  const snapFor = (g: GroupSeries) => g.days[Math.min(Math.max(day, 1), 30) - 1];
 
   return (
-    <section className="panel">
-      <h2 style={{ marginTop: 0 }}>Spend by cost center (at day {day})</h2>
+    <section className="panel" style={{ display: 'grid', gap: 18 }}>
+      <h2 style={{ margin: 0 }}>Per cost center &amp; unassigned</h2>
       {groups.length === 0 ? (
-        <p className="muted">No cost centers with seats.</p>
+        <p className="muted">No groups with seats.</p>
       ) : (
-        <div style={{ width: '100%', height }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis type="number" tickFormatter={formatUsdValue} tick={{ fill: 'var(--muted)' }} />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={120}
-                tick={{ fill: 'var(--muted)' }}
+        groups.map((g) => {
+          const budget = budgetFor(g);
+          const snap = snapFor(g);
+          return (
+            <div key={g.key} style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <strong>{g.label}</strong>
+                <span className="muted" style={{ fontSize: 12 }}>
+                  {fmtInt(g.seats)} seats · {fmtInt(g.activeUsers)} active · {fmtInt(g.powerUsers)} power ·
+                  metered {fmtUsd(snap?.meteredUsd ?? 0)} · blocked {snap?.blockedUsers ?? 0}/{g.activeUsers}
+                </span>
+              </div>
+              <SpendChart
+                data={g.days.map(toPoint)}
+                day={day}
+                includedName="Included used ($)"
+                activeUsers={g.activeUsers}
+                height={230}
+                refLines={
+                  budget != null ? [{ y: budget, label: 'CC budget', color: 'var(--metered)' }] : []
+                }
               />
-              <Tooltip formatter={formatUsdValue} />
-              <Legend />
-              <Bar dataKey="included" stackId="a" fill="var(--pool)" name="Included ($)" />
-              <Bar dataKey="metered" stackId="a" fill="var(--metered)" name="Metered ($)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            </div>
+          );
+        })
       )}
     </section>
   );
 }
+

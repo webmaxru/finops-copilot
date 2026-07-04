@@ -60,6 +60,7 @@ export default function GlobalControls() {
           step={RANGES.bizRatio.step}
           onChange={(v) => setInput('bizRatio', v)}
           format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
+          variant="ratio"
           caption={`${fmtInt(sim.businessSeats)} Business ($${sim.businessSeats * SEAT_PRICE.business}) · ${fmtInt(
             sim.enterpriseSeats,
           )} Enterprise ($${sim.enterpriseSeats * SEAT_PRICE.enterprise})`}
@@ -146,6 +147,12 @@ export default function GlobalControls() {
             format={(v) => fmtUsd(v)}
             caption={`= ${fmtCredits(usdToCredits(avgPowerUserBudgetUsd))} per power user · individual override of the ULB`}
           />
+          <div className="muted" style={{ fontSize: 12 }}>
+            Distributed across groups in proportion to each group&apos;s <em>active</em> users:
+            a group gets <code>round(active × {fmtInt(powerUsers)}/{fmtInt(totalLicenses)})</code> power users
+            (≈ {totalLicenses > 0 ? Math.round((powerUsers / totalLicenses) * 100) : 0}% of its active users).
+            Per-cost-center counts are shown on each cost center below.
+          </div>
         </div>
 
         <Slider

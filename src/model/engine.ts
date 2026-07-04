@@ -22,6 +22,7 @@ interface GroupState {
   ccBudgetUsd: number | null; // metered budget (null for unassigned)
   stopUsageBudget: boolean;
   // mutable accumulators
+  powerCount: number; // power users in this group (set during population)
   subPool: number;
   includedUsd: number;
   meteredUsd: number;
@@ -72,6 +73,7 @@ function makeGroup(a: MakeGroupArgs): GroupState {
     capped: a.capped,
     ccBudgetUsd: a.ccBudgetUsd,
     stopUsageBudget: a.stopUsageBudget,
+    powerCount: 0,
     subPool: 0,
     includedUsd: 0,
     meteredUsd: 0,
@@ -156,6 +158,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const users: UserState[] = [];
   for (const g of groups) {
     const powerCount = Math.round(g.activeCount * powerFraction);
+    g.powerCount = powerCount;
     for (let i = 0; i < g.activeCount; i++) {
       const isPower = i < powerCount;
       const target = isPower ? powerBudgetCredits : inp.avgDevUsageCredits;
@@ -284,6 +287,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     kind: g.kind,
     seats: g.seats,
     activeUsers: g.activeCount,
+    powerUsers: g.powerCount,
     poolCredits: g.carveoutCredits,
     licenseValueUsd: g.licenseValueUsd,
     capped: g.capped,
@@ -303,6 +307,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     kind: 'enterprise',
     seats: inp.totalLicenses,
     activeUsers,
+    powerUsers: groups.reduce((s, g) => s + g.powerCount, 0),
     poolCredits,
     licenseValueUsd: licenseFeesUsd,
     capped: false,

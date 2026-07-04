@@ -306,6 +306,18 @@ describe('power-user individual budget override', () => {
     // At v=0 usage equals the budget exactly => no unmet demand => not blocked.
     expect(r.monthEndBlockedUsers).toBe(0);
   });
+
+  it('exposes per-group power-user counts distributed proportional to active users', () => {
+    const inp = DEFAULT_INPUTS();
+    const r = runSimulation(inp);
+    const frac = inp.powerUsers / inp.totalLicenses;
+    const groups = [...r.costCenters, r.unassigned];
+    for (const g of groups) {
+      expect(g.powerUsers).toBe(Math.round(g.activeUsers * frac));
+    }
+    // Enterprise total = sum of the (rounded) per-group counts.
+    expect(r.enterprise.powerUsers).toBe(groups.reduce((s, g) => s + g.powerUsers, 0));
+  });
 });
 
 describe('blocked count = users whose intended usage exceeds their limit', () => {

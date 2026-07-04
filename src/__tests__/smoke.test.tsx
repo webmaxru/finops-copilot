@@ -9,5 +9,8 @@ describe('App smoke test', () => {
     const html = renderToStaticMarkup(<App />);
     expect(html).toContain('Copilot Enterprise Spend Simulator');
     expect(html).toContain('Cost center');
+    // Dynamic status line (header) and power-user composition line.
+    expect(html).toContain('configured');
+    expect(html).toContain('power-user');
   });
 });

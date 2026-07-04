@@ -90,9 +90,48 @@ a {
   margin-bottom: 16px;
 }
 
+.app-header h1 {
+  font-size: 20px;
+  margin: 8px 0 2px;
+}
+
 .app-header p {
-  margin: 4px 0 0;
-  max-width: 70ch;
+  margin: 0;
+  max-width: 80ch;
+  font-size: 13px;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 6px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.status-bar strong {
+  color: var(--text);
+}
+
+.status-bar .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pool);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pool) 25%, transparent);
+}
+
+.status-bar .status-sep {
+  color: var(--border);
+}
+
+.status-bar .status-over {
+  color: var(--limit);
 }
 
 .app-grid {
@@ -113,4 +152,71 @@ a {
   .app-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Ratio slider: a two-tone split track (Business | Enterprise) rather than a
+   fill-vs-empty bar, so it reads as a proportion, not a level. --pos is the
+   thumb position (0–100%) set inline by the Slider component. */
+input[type='range'].ratio-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range'].ratio-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--primary) 0 var(--pos),
+    var(--accent) var(--pos) 100%
+  );
+}
+input[type='range'].ratio-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--primary) 0 var(--pos),
+    var(--accent) var(--pos) 100%
+  );
+}
+input[type='range'].ratio-slider::-moz-range-progress {
+  background: transparent;
+}
+input[type='range'].ratio-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  margin-top: -5px;
+  background: var(--text);
+  border: 2px solid var(--panel);
+}
+input[type='range'].ratio-slider::-moz-range-thumb {
+  width: 6px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--text);
+  border: 2px solid var(--panel);
+}
+
+/* "NEW" / "API-only" style badges next to control labels. */
+.badge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.badge-new {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }

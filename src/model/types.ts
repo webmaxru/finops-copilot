@@ -62,6 +62,7 @@ export interface GroupSeries {
   kind: GroupKind;
   seats: number;
   activeUsers: number;
+  powerUsers: number; // power users assigned to this group (engine's rounded distribution)
   poolCredits: number; // starting included pool for this group
   licenseValueUsd: number;
   capped: boolean; // included-usage cap active (cost centers only)

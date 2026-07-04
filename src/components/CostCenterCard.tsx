@@ -11,17 +11,16 @@ interface CostCenterCardProps {
 
 function ApiOnlyBadge() {
   return (
-    <span
-      style={{
-        fontSize: 10,
-        padding: '1px 6px',
-        border: '1px solid var(--border)',
-        borderRadius: 6,
-        color: 'var(--muted)',
-        marginLeft: 6,
-      }}
-    >
+    <span className="badge" style={{ marginLeft: 6 }}>
       API-only today
+    </span>
+  );
+}
+
+function NewBadge() {
+  return (
+    <span className="badge badge-new" style={{ marginLeft: 6 }}>
+      NEW
     </span>
   );
 }
@@ -32,6 +31,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const remove = useStore((s) => s.removeCostCenter);
   const totalLicenses = useStore((s) => s.inputs.totalLicenses);
   const costCenters = useStore((s) => s.inputs.costCenters);
+  const universalUlbUsd = useStore((s) => s.inputs.universalUlbUsd);
   const sim = useSimResult();
 
   if (!cc) return null;
@@ -102,6 +102,12 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         )} · funds ${fmtCredits(series?.poolCredits ?? 0)}`}
       />
 
+      <div className="muted" style={{ fontSize: 12, marginTop: -2 }}>
+        {fmtInt(series?.activeUsers ?? 0)} active users ·{' '}
+        <strong style={{ color: 'var(--accent)' }}>{fmtInt(series?.powerUsers ?? 0)} power-users</strong>{' '}
+        (individual budget) · {fmtInt(Math.max(0, (series?.activeUsers ?? 0) - (series?.powerUsers ?? 0)))} normal
+      </div>
+
       <Toggle
         label="Use enterprise Business/Enterprise plan mix"
         checked={cc.planMixInherit}
@@ -116,6 +122,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
           step={RANGES.bizRatio.step}
           onChange={(v) => setPatch({ bizRatio: v })}
           format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
+          variant="ratio"
           caption={`${fmtInt(ccBizSeats)} Business ($${ccBizSeats * SEAT_PRICE.business}) · ${fmtInt(
             ccEntSeats,
           )} Enterprise ($${ccEntSeats * SEAT_PRICE.enterprise})`}
@@ -123,24 +130,29 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
       )}
 
       <Toggle
-        label="Use enterprise ULB"
-        checked={cc.userLimitInherit}
-        onChange={(v) => setPatch({ userLimitInherit: v })}
+        label="Cost center ULB"
+        labelSuffix={
+          <>
+            <NewBadge />
+            <ApiOnlyBadge />
+          </>
+        }
+        checked={!cc.userLimitInherit}
+        onChange={(v) => setPatch({ userLimitInherit: !v })}
+        caption={
+          cc.userLimitInherit ? `Enterprise ULB ${fmtUsd(universalUlbUsd)} is used by default` : undefined
+        }
       />
       {!cc.userLimitInherit && (
         <Slider
-          label="Cost center ULB"
+          label="Cost center ULB amount"
           value={cc.userLimitUsd}
           min={RANGES.ccUserLimitUsd.min}
           max={RANGES.ccUserLimitUsd.max}
           step={RANGES.ccUserLimitUsd.step}
           onChange={(v) => setPatch({ userLimitUsd: v })}
           format={(v) => fmtUsd(v)}
-          caption={
-            <>
-              <ApiOnlyBadge /> = {fmtCredits(usdToCredits(cc.userLimitUsd))} per user (hard stop)
-            </>
-          }
+          caption={`= ${fmtCredits(usdToCredits(cc.userLimitUsd))} per user (hard stop)`}
         />
       )}
 
@@ -165,13 +177,18 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
 
       <Toggle
         label="AI credit pool (limit to own licenses)"
+        labelSuffix={
+          <>
+            <NewBadge />
+            <ApiOnlyBadge />
+          </>
+        }
         checked={cc.includedCapEnabled}
         onChange={(v) => setPatch({ includedCapEnabled: v })}
         caption={
           <>
             auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}); beyond
             it, usage continues as metered (subject to budgets)
-            <ApiOnlyBadge />
           </>
         }
       />

@@ -6,10 +6,12 @@ interface ToggleProps {
   onChange: (b: boolean) => void;
   caption?: ReactNode;
   disabled?: boolean;
+  /** Optional badges/markers rendered right after the label (consistent position). */
+  labelSuffix?: ReactNode;
 }
 
 /** Simple checkbox-style toggle with an optional caption line. */
-export default function Toggle({ label, checked, onChange, caption, disabled }: ToggleProps) {
+export default function Toggle({ label, checked, onChange, caption, disabled, labelSuffix }: ToggleProps) {
   return (
     <label style={{ display: 'block', opacity: disabled ? 0.5 : 1, cursor: 'pointer' }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -21,6 +23,7 @@ export default function Toggle({ label, checked, onChange, caption, disabled }: 
           style={{ accentColor: 'var(--primary)', width: 16, height: 16 }}
         />
         <span>{label}</span>
+        {labelSuffix}
       </span>
       {caption != null && (
         <div className="muted" style={{ fontSize: 12, marginTop: 1, marginLeft: 24 }}>
