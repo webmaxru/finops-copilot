@@ -119,13 +119,12 @@ describe('cost-center budget bounds scale with the CC seats', () => {
   });
 
   it('uses the CC budget (absolute USD) to hard-stop that CC metered spend', () => {
-    // A capped CC (own pool) that spills to overage, with a low absolute budget
+    // A capped CC (own pool) that spills to metered, with a low absolute budget
     // and stop-usage on, must cap its own metered spend at exactly that budget.
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
       includedCapEnabled: true,
-      includedCapMode: 'overage' as const,
       budgetUsd: 40,
       stopUsageBudget: true,
     };
@@ -254,29 +253,34 @@ describe('enterprise budget that excludes cost-center usage', () => {
   });
 });
 
-describe('cost-center included-usage cap (block mode)', () => {
-  it('limits a capped cost center to its own licenses and yields no metered', () => {
+describe('cost-center AI credit pool (included-usage cap)', () => {
+  it('limits included draw to the CC own licenses and spills the rest to metered', () => {
+    // No per-CC block/overage control exists; an enabled AI credit pool caps the
+    // CC included draw at its own funded credits and the excess continues as
+    // metered (overages assumed enabled). Budgets set high so they do not bind.
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
       includedCapEnabled: true,
-      includedCapMode: 'block' as const,
+      budgetUsd: 5000,
+      stopUsageBudget: true,
     };
     const r = runSimulation(
       base({
         totalLicenses: 10,
         bizRatio: 1,
         activePct: 1,
-        avgDevUsageCredits: 19000,
+        avgDevUsageCredits: 19000, // demand $1,900 >> the $190 own pool
         powerUsers: 0,
         universalUlbUsd: 500,
         usageVariation: 0,
+        stopUsageBudgets: false, // enterprise budget not binding
         costCenters: [cc],
       }),
     );
-    // carveout = 10*1900 = 19,000 cr = $190; block mode => no overage
-    expect(r.monthEndMeteredUsd).toBeCloseTo(0, 6);
-    expect(r.monthEndIncludedUsd).toBeLessThanOrEqual(190 + 1e-6);
+    // Own pool = 10*1900 = 19,000 cr = $190 (included cap); the rest spills to metered.
+    expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
+    expect(r.monthEndMeteredUsd).toBeCloseTo(1710, 0);
   });
 });
 

@@ -59,7 +59,7 @@ Per request: **user-level budget → shared pool → cost-center budget → orga
 - **Modeled** as the `enterpriseBudgetExcludesCostCenters` input (UI toggle "Enterprise budget excludes cost-center usage"; default off). In `engine.ts` `ApplyMetered`, cost-center groups then skip the enterprise-budget cap and do not accrue against it; only non-cost-center groups do.
 
 ### 5.7 AI credit paid usage policy (assumed enabled)  **[Assumption]**
-The enterprise/org **"AI credit paid usage"** policy globally governs whether **any** metered usage is allowed once the pool is exhausted (if off, all post-pool usage blocks). [B1][B4] It is a **global** gate, **not** a cost-center control. The simulator **assumes it is enabled** (metered usage always occurs, then bounded by budgets) and does **not** expose it as a control; hard stops are modeled via budget "stop usage" flags and the included-cap block mode. [B17]
+The enterprise/org **"AI credit paid usage"** policy globally governs whether **any** metered usage is allowed once the pool is exhausted (if off, all post-pool usage blocks). [B1][B4] It is a **global** gate, **not** a cost-center control. The simulator **assumes it is enabled** (metered usage always occurs, then bounded by budgets) and does **not** expose it as a control; hard stops are modeled via budget "stop usage" flags. [B17]
 
 ## 6. Cost centers
 
@@ -67,9 +67,10 @@ The enterprise/org **"AI credit paid usage"** policy globally governs whether **
 - **A resource (seat) belongs to only one cost center at a time** — therefore the sum of cost-center members cannot exceed total licenses. [B10] *(This is the rule enforced by the members-slider caps.)*
 - **Cost-center budget** caps that CC's metered charges. [B5]
 - **Cost-center per-user budget** (`multi_user_cost_center`) sets one per-user amount for all members; caps total (pool+metered); **API-only today**. [B12][B9][B4]
-- **Included-usage cap** (`ai_credit_pool_enabled`) is a control **separate from** the cost-center budget. It caps a CC's draw from the shared pool **before** the metered phase, limiting it to the credits **its own licenses fund** — GitHub **auto-computes** this amount from the CC's licenses (the admin enters no number). **You explicitly choose what happens when the cap is hit: `block` members, or let usage continue as paid `overage`** — this block/overage choice lives on the cap itself, **not** on the metered budget. **API-only today** (settings-UI management "coming soon"). [B13][B8][B10]
-- The two cost-center controls are **layered, not alternatives**: the included-usage cap governs the **pool (included)** phase (block/overage), while the **cost-center budget** governs the **metered** phase after the pool is exhausted (hard-stop only if "Stop usage when budget limit is reached" is on). You can apply both to the same CC. [B4][B5]
-- Enabling an included-usage cap does **not** redistribute the shared pool; other groups keep drawing from the remaining shared pool. [B10]
+- **Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`)** is a single **on/off boolean** on the cost center — the only cost-center pool parameter the API exposes. It caps a CC's draw from the shared included pool to the credits **its own licenses fund** — GitHub **auto-computes** this amount (Business 3,000 / Enterprise 7,000 AI credits per license; the admin enters no number). **API-only today** (settings-UI "Early July"). [B13][B8][B10]
+- **There is no per-cost-center "block vs. overage" control.** What happens when the cap is reached is governed by the **enterprise-wide overages ("AI credit paid usage") policy**: *"If AI Credit overages are allowed, users can continue after the included pool amount is reached, subject to any other budgets… If overages are not allowed, usage stops."* [B13] The earlier reading of the changelog's "block or overage" as a per-CC toggle was incorrect — it refers to this enterprise policy.
+- The included-usage cap and the **cost-center budget** are **layered, not alternatives**: the cap governs the **pool (included)** phase, the budget governs the **metered** phase (hard-stop only if "Stop usage when budget limit is reached" is on). You can apply both to the same CC. [B4][B5]
+- Enabling an included-usage cap does **not** redistribute the shared pool; other groups keep drawing from the remaining shared pool. [B10][B13]
 
 ## 7. Rules the engine intentionally does NOT implement (extension points)
 

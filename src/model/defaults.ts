@@ -118,7 +118,6 @@ export function makeDefaultCostCenter(index: number): CostCenter {
     budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
     stopUsageBudget: true,
     includedCapEnabled: false,
-    includedCapMode: 'block',
   };
 }
 

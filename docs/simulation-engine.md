@@ -23,7 +23,7 @@ graph TD
   USERS --> LOOP[Daily accounting loop d=1..D — §6]
   POOL --> LOOP
   AGG -->|βE, stopE| LOOP
-  GRP -->|β_g, stop_g, U_g, capped, capMode| LOOP
+  GRP -->|β_g, stop_g, U_g, capped| LOOP
 
   LOOP --> SNAP[Per-day snapshots: pool left, included$, metered$, bill$, blocked — §7.1]
   LOOP --> SCAL[Scalars: poolExhaustedDay, poolUsedPct, month-end totals — §7.2]
@@ -54,7 +54,7 @@ graph TD
 - **Budgets cap only the metered leg.** $\beta_g$ (CC) and $\beta_E$ (enterprise) are applied inside `ApplyMetered`, i.e. after the pool is exhausted — never limiting pool use. Their `stop` flags decide whether the cap actually blocks or merely would-alert (charges still accrue). [B4][B5][B6]
 - **Enterprise budget can exclude cost centers.** When `enterpriseBudgetExcludesCostCenters` is on, `ApplyMetered` applies $\beta_E$ (and accrues $\mathrm{Me}_E$) only for **non-cost-center** groups; each cost center is then bounded solely by its own $\beta_g$ and spends on top of $\beta_E$. This mirrors GitHub's "enterprise-scoped budget that excludes cost-center usage" (one enterprise-budget setting, not per-CC). [B18]
 - **Additivity.** Because budgets cap only metered charges, the worst-case bill is $M=F+\beta_E$ — plus $\sum_{cc}\beta_{cc}$ when the enterprise budget excludes cost centers — not $\beta_E$ alone; the max-bill rule. The engine assumes the "AI credit paid usage" policy is enabled. [B5][B18]
-- **"Blocked" means any hard stop.** A user is counted blocked for the month if a hard stop kept them from consuming what they wanted that day ($\text{spent}<x_{i,d}$) — whether from their **user limit** ($U_g$ / power-user override $B_{\text{pow}}$), a cost-center **included-usage cap** in block mode, or a cost-center/enterprise **metered-budget stop** whose `stop` flag is on. So enabling a budget stop that binds correctly shows blocked users even when nobody exceeds their own per-user limit (§6d). [B4][B6][B16]
+- **"Blocked" means any hard stop.** A user is counted blocked for the month if a hard stop kept them from consuming what they wanted that day ($\text{spent}<x_{i,d}$) — whether from their **user limit** ($U_g$ / power-user override $B_{\text{pow}}$) or a cost-center/enterprise **metered-budget stop** whose `stop` flag is on. (An AI-credit-pool cap does not block — its excess spills to metered.) So enabling a budget stop that binds correctly shows blocked users even when nobody exceeds their own per-user limit (§6d). [B4][B6][B16]
 - **Determinism.** All randomness flows from `seed` through one `mulberry32` stream consumed in a fixed order (groups, then users, then that user's 30 daily weights), so a given input always yields identical output; "Reshuffle" changes only `seed`.
 
 ## Complexity & performance

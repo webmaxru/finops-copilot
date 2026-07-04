@@ -34,9 +34,9 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 ## Inputs
 
-**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), promo-allowances toggle, stop-usage toggle.
+**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), an **"enterprise budget excludes cost-center usage"** toggle, promo-allowances toggle, stop-usage toggle.
 
-**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an included-usage cap (block/overage).
+**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; excess spills to metered).
 
 Every non-USD slider shows its **USD equivalent** live.
 

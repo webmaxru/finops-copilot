@@ -2,7 +2,6 @@
 // The simulation engine consumes `EnterpriseInputs` and returns a `SimResult`.
 
 export type PlanType = 'business' | 'enterprise';
-export type IncludedCapMode = 'block' | 'overage';
 
 /** A cost center: a subset of seats with its own (optional) limits. */
 export interface CostCenter {
@@ -22,10 +21,8 @@ export interface CostCenter {
   budgetUsd: number;
   /** Hard-stop the CC metered budget when reached. */
   stopUsageBudget: boolean;
-  /** Included-usage cap: limit this CC's draw to its own licenses' credits. */
+  /** Included-usage cap ("AI credit pool"): limit this CC's included draw to its own licenses' credits. Beyond it, usage continues as metered (overages assumed enabled). */
   includedCapEnabled: boolean;
-  /** When the included cap is hit: block members, or spill to metered overage. */
-  includedCapMode: IncludedCapMode;
 }
 
 /** All inputs that drive the simulation (the engine is a pure fn of this). */

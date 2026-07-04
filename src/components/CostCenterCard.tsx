@@ -169,29 +169,12 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         onChange={(v) => setPatch({ includedCapEnabled: v })}
         caption={
           <>
-            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)})
+            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}); beyond
+            it, usage continues as metered (subject to budgets)
             <ApiOnlyBadge />
           </>
         }
       />
-      {cc.includedCapEnabled && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            className={cc.includedCapMode === 'block' ? 'primary' : undefined}
-            onClick={() => setPatch({ includedCapMode: 'block' })}
-          >
-            Block
-          </button>
-          <button
-            type="button"
-            className={cc.includedCapMode === 'overage' ? 'primary' : undefined}
-            onClick={() => setPatch({ includedCapMode: 'overage' })}
-          >
-            Overage
-          </button>
-        </div>
-      )}
 
       <div className="muted" style={{ fontSize: 13 }}>
         This month: metered {fmtUsd(series?.monthEndMeteredUsd ?? 0)} · blocked{' '}
