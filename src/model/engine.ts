@@ -137,7 +137,9 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const licenseFeesUsd = totalBizSeats * SEAT_PRICE.business + totalEntSeats * SEAT_PRICE.enterprise;
   const poolCredits = groups.reduce((s, g) => s + g.carveoutCredits, 0);
   const enterpriseBudgetUsd = inp.enterpriseLimitUsd;
-  const maxBillUsd = licenseFeesUsd + enterpriseBudgetUsd;
+  // With paid usage disabled there is no metered spend, so the worst-case bill is
+  // just the license fees (the enterprise budget cannot be reached).
+  const maxBillUsd = licenseFeesUsd + (inp.allowPaidUsage ? enterpriseBudgetUsd : 0);
   const activeUsers = groups.reduce((s, g) => s + g.activeCount, 0);
 
   // Shared pool = credits funded by seats NOT in a capped cost center.
@@ -179,6 +181,11 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   const entDays: DaySnapshot[] = [];
 
   const applyMetered = (g: GroupState, credits: number): number => {
+    // Enterprise/org "AI credit paid usage" policy: if paid usage is not allowed,
+    // NO metered usage occurs anywhere once the pool is exhausted — all post-pool
+    // demand is blocked, regardless of budgets. This is a global gate, not a
+    // cost-center control (docs/billing-model.md §6a). [B1][B4]
+    if (!inp.allowPaidUsage) return 0;
     let allowedUsd = credits * CREDIT_USD;
     if (g.ccBudgetUsd != null && g.stopUsageBudget) {
       allowedUsd = Math.min(allowedUsd, Math.max(0, g.ccBudgetUsd - g.meteredUsd));

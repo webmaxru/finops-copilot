@@ -26,7 +26,7 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 ## 2. Inputs — `src/model/types.ts` (`EnterpriseInputs`), defaults in `defaults.ts:52-71`
 
-$L,\ \rho_B,\ \alpha,\ \bar u,\ \phi,\ m,\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ \phi{=}0.2,\ m{=}3,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$1{,}500,\ \mathrm{promo}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (see §5.2 for its default and slider max).
+$L,\ \rho_B,\ \alpha,\ \bar u,\ n_{\text{pow}},\ B_{\text{pow}},\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{paid},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ n_{\text{pow}}{=}10,\ B_{\text{pow}}{=}\$190,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$2{,}620,\ \mathrm{promo}{=}\text{false},\ \mathrm{paid}{=}\text{true},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (§5.2); $n_{\text{pow}}$ is the number of power users and $B_{\text{pow}}$ their individual budget (§2.1); $\mathrm{paid}$ is the enterprise "AI credit paid usage" policy (§6c).
 
 Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, `includedCapEnabled` (capped?), `includedCapMode` ∈ {block, overage}.
 
@@ -63,6 +63,7 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 | Universal ULB $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
 | Enterprise limit $\beta_E$ | $0 · **A** | $\$256\cdot L$ = $25,600 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $2,620 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$256\times L$; recomputed only when total users changes) |
 | Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
+| AI credit paid usage $\mathrm{paid}$ | — | — | true · **A** | enterprise/org policy gating **all** metered usage (§6c); when false, every post-pool request blocks. Default **A** (GitHub's real default not asserted); that the control exists is **Doc** [B1][B4][B17] |
 | Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
 | Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
 
@@ -198,9 +199,10 @@ $$\text{metered credits}=\begin{cases}\textsc{ApplyMetered}(g,\ell) & \text{capM
 Non-capped group (shared pool):
 $$\mathrm{inc}=\min(\sigma_{i,d},\ P_{\text{shared}}),\quad P_{\text{shared}}\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc};\qquad \text{metered credits}=\textsc{ApplyMetered}(g,\ell)$$
 
-**(c) `ApplyMetered(g, credits)`** — `engine.ts:181-193` — **[Fact]** [B4][B5]
+**(c) `ApplyMetered(g, credits)`** — `engine.ts:181-199` — **[Fact]** [B1][B4][B5]
 $$
 \begin{aligned}
+\text{if } \neg\,\mathrm{paid}:\ & \textbf{return } 0 && \text{("AI credit paid usage" policy off — no metered anywhere)}\\
 a &= \text{credits}\cdot c && \text{(requested USD)}\\
 \text{if } \beta_g\neq\text{null} \wedge \mathrm{stop}_g:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_g-\mathrm{Me}_g)\big) && \text{CC budget cap}\\
 \text{if } \mathrm{stop}_E:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_E-\mathrm{Me}_E)\big) && \text{enterprise budget cap}\\
@@ -208,7 +210,7 @@ a &= \text{credits}\cdot c && \text{(requested USD)}\\
 & \textbf{return } a/c && \text{(metered credits actually billed)}
 \end{aligned}
 $$
-The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6]
+The leading $\neg\,\mathrm{paid}$ guard is the enterprise/org **"AI credit paid usage"** policy (§5.6 of `billing-model.md`): when off, **no** metered credits are ever served, so every user's post-pool demand is unmet and they are blocked (§6d). It is a **global** gate, applied identically to every group — not a cost-center control. [B1][B4] The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6]
 
 **(d) Commit user & blocked determination** — `engine.ts:228-240` — **[Fact]** [B4][B16]
 $$\text{spent}=\mathrm{inc}+\text{metered credits};\quad \mathrm{cum}_i\mathrel{+}=\text{spent};\quad \mathrm{In}_g\mathrel{+}=\mathrm{inc}\cdot c$$

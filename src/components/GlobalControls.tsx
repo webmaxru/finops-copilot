@@ -15,6 +15,7 @@ export default function GlobalControls() {
   const universalUlbUsd = useStore((s) => s.inputs.universalUlbUsd);
   const enterpriseLimitUsd = useStore((s) => s.inputs.enterpriseLimitUsd);
   const promo = useStore((s) => s.inputs.promo);
+  const allowPaidUsage = useStore((s) => s.inputs.allowPaidUsage);
   const stopUsageBudgets = useStore((s) => s.inputs.stopUsageBudgets);
   const setInput = useStore((s) => s.setInput);
   const reset = useStore((s) => s.reset);
@@ -147,6 +148,13 @@ export default function GlobalControls() {
           />
         </div>
 
+        <Toggle
+          label="Allow AI credit paid usage (metered)"
+          checked={allowPaidUsage}
+          onChange={(b) => setInput('allowPaidUsage', b)}
+          caption="Enterprise/org policy governing all metered usage. When off, everything beyond the included pool is blocked (no metered/overage) and the budget controls below have no effect."
+        />
+
         <Slider
           label="Enterprise limit (metered budget)"
           value={enterpriseLimitUsd}
@@ -155,6 +163,7 @@ export default function GlobalControls() {
           step={RANGES.enterpriseLimitUsd.step}
           onChange={(v) => setInput('enterpriseLimitUsd', v)}
           format={(v) => fmtUsd(v)}
+          disabled={!allowPaidUsage}
           caption={`metered budget on top of licenses · max bill ${fmtUsd(sim.maxBillUsd)} (= licenses + budget)`}
         />
 
@@ -169,6 +178,7 @@ export default function GlobalControls() {
           label="Stop usage at budget"
           checked={stopUsageBudgets}
           onChange={(b) => setInput('stopUsageBudgets', b)}
+          disabled={!allowPaidUsage}
           caption="Hard-stop metered budgets when reached. Real-world default is OFF (alerts only)."
         />
 

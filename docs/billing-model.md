@@ -52,6 +52,11 @@ Budgets exist at **enterprise**, **organization**, **repository**, **cost center
 ### 5.5 Evaluation order
 Per request: **user-level budget → shared pool → cost-center budget → organization budget → enterprise budget**, and the budget with the **least remaining headroom blocks first**. [B4][B5]
 
+### 5.6 AI credit paid usage policy (global gate — modeled)
+- A separate enterprise/organization policy governs whether **any** additional (metered) usage is allowed once the shared pool is exhausted. When disabled, **all** post-pool usage is **blocked** for every user regardless of budgets; when enabled, metered usage proceeds (then capped by budgets). [B1][B4]
+- It is a **global** gate — **not** a cost-center control and **not** part of the included-usage cap. An `overage` spill (§6) simply enters the same metered phase this policy governs.
+- **Modeled** in the engine as the `allowPaidUsage` input (UI toggle "Allow AI credit paid usage (metered)"; default on). When off, `ApplyMetered` returns 0 (`engine.ts`), so all post-pool demand blocks and the worst-case bill collapses to license fees. It maps to a real GitHub governance control (enterprise **"AI controls"**), satisfying the design invariant in `formulas.md` §2. [B17]
+
 ## 6. Cost centers
 
 - A cost center attributes usage to a business unit; it can contain users, enterprise teams, orgs, repos. [B10][B11]
@@ -81,9 +86,6 @@ Paid plans get **−10%** on model cost when using auto model selection (× 0.90
 Requests under data-residency enforcement consume **+10%** AI credits (× 1.10). [B15]
 
 If added, apply per interaction after computing base credits: `credits × 0.90 (auto) × 1.10 (residency)`. These would multiply the per-user usage in `formulas.md` §4 before the daily accounting loop.
-
-### 7.4 Enterprise "AI credit paid usage" policy gate  **[Fact, not implemented]**
-This is an **enterprise/organization-wide** policy — **not** a cost-center control and **not** part of the AI-credit-pool (included-usage cap) setting. It governs whether **any additional (metered) usage** is allowed once the shared pool is exhausted, for **every** user (unassigned seats, all cost centers, power users alike): if disabled, all post-pool usage is **blocked** regardless of budgets; if enabled, metered usage proceeds and is then capped by whatever budgets apply. It is managed as a Copilot policy in enterprise/organization settings (the enterprise **"AI controls"** tab). [B1][B4][B17] Because it applies to all metered usage globally, it is *not* specific to a CC's `overage` mode — an `overage` spill simply enters the same metered phase this policy governs. The simulator assumes paid usage is **allowed** and instead models hard stops via the budget "stop usage" flags (`formulas.md` §6c) and the included-cap block mode. Because it maps to a real governance control, modeling it **satisfies the §2 design invariant** and is a valid global extension point: an "AI credit paid usage" toggle that, when off, forces all post-pool demand to block.
 
 ## Citations
 

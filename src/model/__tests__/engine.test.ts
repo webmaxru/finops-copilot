@@ -217,6 +217,45 @@ describe('stop-usage caps metered at the enterprise budget', () => {
   });
 });
 
+describe('AI credit paid usage policy (global metered gate)', () => {
+  it('blocks all post-pool usage and yields zero metered when paid usage is off', () => {
+    const off = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        avgDevUsageCredits: 19000, // heavy: demand ($1,900) far exceeds the $190 pool
+        powerUsers: 0,
+        universalUlbUsd: 500, // not binding
+        usageVariation: 0,
+        allowPaidUsage: false,
+      }),
+    );
+    // No metered usage is possible: everything past the included pool is blocked.
+    expect(off.monthEndMeteredUsd).toBeCloseTo(0, 6);
+    expect(off.monthEndBlockedUsers).toBe(off.activeUsers);
+    // Worst-case bill collapses to license fees only (the budget can't be reached).
+    expect(off.maxBillUsd).toBeCloseTo(off.licenseFeesUsd, 6);
+
+    // Same scenario with paid usage on (budget not binding) DOES meter.
+    const on = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        avgDevUsageCredits: 19000,
+        powerUsers: 0,
+        universalUlbUsd: 500,
+        usageVariation: 0,
+        allowPaidUsage: true,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+      }),
+    );
+    expect(on.monthEndMeteredUsd).toBeGreaterThan(0);
+  });
+});
+
 describe('cost-center included-usage cap (block mode)', () => {
   it('limits a capped cost center to its own licenses and yields no metered', () => {
     const cc = {

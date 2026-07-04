@@ -135,6 +135,7 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     universalUlbUsd: DEFAULT_UNIVERSAL_ULB_USD,
     enterpriseLimitUsd: DEFAULT_ENTERPRISE_LIMIT_USD,
     promo: false,
+    allowPaidUsage: true,
     stopUsageBudgets: true,
     seed: 12345,
     costCenters: [makeDefaultCostCenter(1)],
