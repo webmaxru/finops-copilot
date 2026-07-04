@@ -73,6 +73,18 @@ export const UNIVERSAL_ULB_MAX_MULTIPLE = 10;
 export const DEFAULT_UNIVERSAL_ULB_USD = DEFAULT_AVG_DEV_USAGE_CREDITS * CREDIT_USD;
 
 /**
+ * Per-cost-center average developer monthly usage defaults. Each cost center
+ * has its own average usage (same slider bounds as the enterprise avg, §2.2);
+ * the two predefined cost centers seed a high-usage vs. low-usage split:
+ *   High usage cost center = 2× the enterprise default
+ *   Low usage cost center  = ½× the enterprise default
+ */
+export const DEFAULT_HIGH_CC_USAGE_CREDITS = 2 * DEFAULT_AVG_DEV_USAGE_CREDITS; // 10,000
+export const DEFAULT_LOW_CC_USAGE_CREDITS = DEFAULT_AVG_DEV_USAGE_CREDITS / 2; // 2,500
+/** Low-usage cost center default seats = the rest of the users after the high-usage CC. */
+export const DEFAULT_LOW_CC_MEMBERS = DEFAULT_TOTAL_LICENSES - DEFAULT_CC_MEMBERS; // 70
+
+/**
  * Power-user individual budget override (see docs/formulas.md §4, §2.1). A power
  * user's monthly usage is modeled at this budget, which also serves as their
  * per-user limit (overriding the universal ULB, per GitHub's individual-override
@@ -105,14 +117,14 @@ function newId(): string {
   return c?.randomUUID ? c.randomUUID() : `cc-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** A fresh cost center with smart defaults (inherits enterprise settings). */
+/** A fresh cost center with smart defaults. Cost centers always use the
+ * enterprise Business/Enterprise ratio (there is no per-CC plan-mix control). */
 export function makeDefaultCostCenter(index: number): CostCenter {
   return {
     id: newId(),
     name: `Cost center ${index}`,
     members: DEFAULT_CC_MEMBERS,
-    planMixInherit: true,
-    bizRatio: 0.7,
+    avgDevUsageCredits: DEFAULT_AVG_DEV_USAGE_CREDITS,
     userLimitInherit: true,
     userLimitUsd: 50,
     budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
@@ -137,6 +149,21 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     enterpriseBudgetExcludesCostCenters: false,
     stopUsageBudgets: true,
     seed: 12345,
-    costCenters: [makeDefaultCostCenter(1)],
+    costCenters: [
+      {
+        ...makeDefaultCostCenter(1),
+        name: 'High usage cost center',
+        members: DEFAULT_CC_MEMBERS,
+        avgDevUsageCredits: DEFAULT_HIGH_CC_USAGE_CREDITS,
+        budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
+      },
+      {
+        ...makeDefaultCostCenter(2),
+        name: 'Low usage cost center',
+        members: DEFAULT_LOW_CC_MEMBERS,
+        avgDevUsageCredits: DEFAULT_LOW_CC_USAGE_CREDITS,
+        budgetUsd: ccBudgetDefaultUsd(DEFAULT_LOW_CC_MEMBERS),
+      },
+    ],
   };
 }

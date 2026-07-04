@@ -82,7 +82,7 @@ Cost is computed from model per-token prices (input / cached / output, plus cach
 USD = Σ_type (tokens_type / 1e6) × price_type(model)
 AICR = USD / 0.01
 ```
-Extension point: replace the direct `avgDevUsageCredits` input (see `formulas.md` §4) with a token-based estimator producing per-user credits.
+Extension point: replace the direct average-usage inputs (enterprise + per-cost-center `avgDevUsageCredits`, see `formulas.md` §4) with a token-based estimator producing per-user credits.
 
 ### 7.2 Auto-model-selection discount  **[Fact, not implemented]**
 Paid plans get **−10%** on model cost when using auto model selection (× 0.90). [B14]

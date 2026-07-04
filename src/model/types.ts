@@ -9,10 +9,8 @@ export interface CostCenter {
   name: string;
   /** Number of assigned seats (licenses) in this cost center. */
   members: number;
-  /** If true, use the enterprise Business/Enterprise ratio. */
-  planMixInherit: boolean;
-  /** Business share (0..1) used when planMixInherit is false. */
-  bizRatio: number;
+  /** Average monthly usage (credits) of a normal (non-power) active member of this cost center. */
+  avgDevUsageCredits: number;
   /** If true, use the enterprise universal per-user limit. */
   userLimitInherit: boolean;
   /** Per-user total (pool+metered) cap in USD when not inheriting. */

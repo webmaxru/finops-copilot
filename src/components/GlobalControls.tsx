@@ -51,19 +51,24 @@ export default function GlobalControls() {
           caption={`${fmtUsd(sim.licenseFeesUsd)}/mo license fees · pool ${fmtCredits(sim.poolCredits)}`}
         />
 
-        <Slider
-          label="Business / Enterprise ratio"
-          value={bizRatio}
-          min={RANGES.bizRatio.min}
-          max={RANGES.bizRatio.max}
-          step={RANGES.bizRatio.step}
-          onChange={(v) => setInput('bizRatio', v)}
-          format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
-          variant="ratio"
-          caption={`${fmtInt(sim.businessSeats)} Business ($${sim.businessSeats * SEAT_PRICE.business}) · ${fmtInt(
-            sim.enterpriseSeats,
-          )} Enterprise ($${sim.enterpriseSeats * SEAT_PRICE.enterprise})`}
-        />
+        <div>
+          <Slider
+            label="Business / Enterprise ratio"
+            value={bizRatio}
+            min={RANGES.bizRatio.min}
+            max={RANGES.bizRatio.max}
+            step={RANGES.bizRatio.step}
+            onChange={(v) => setInput('bizRatio', v)}
+            format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
+            variant="ratio"
+            caption={`${fmtInt(sim.businessSeats)} Business ($${sim.businessSeats * SEAT_PRICE.business}) · ${fmtInt(
+              sim.enterpriseSeats,
+            )} Enterprise ($${sim.enterpriseSeats * SEAT_PRICE.enterprise})`}
+          />
+          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+            Applied enterprise-wide, including every cost center (there is no per-cost-center plan mix).
+          </div>
+        </div>
 
         <Slider
           label="Active users (% who actually use licenses)"
@@ -88,8 +93,8 @@ export default function GlobalControls() {
             caption={`${fmtUsd(creditsToUsd(avgDevUsageCredits))}/mo per active developer`}
           />
           <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
-            Actual consumption of a typical active (normal) developer; power users are modeled separately
-            (below). Range starts at one Business seat&apos;s included credits.
+            Applies to users <strong>not</strong> assigned to a cost center; each cost center sets its own
+            average usage. Power users are modeled separately (below).
           </div>
         </div>
 

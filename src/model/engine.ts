@@ -18,6 +18,7 @@ interface GroupState {
   licenseValueUsd: number;
   activeCount: number;
   ulbCredits: number; // per-user total limit in credits
+  avgDevUsageCredits: number; // normal-member usage target (credits) for this group
   capped: boolean;
   ccBudgetUsd: number | null; // metered budget (null for unassigned)
   stopUsageBudget: boolean;
@@ -47,6 +48,7 @@ interface MakeGroupArgs {
   inclE: number;
   activePct: number;
   ulbUsd: number;
+  avgDevUsageCredits: number; // normal (non-power) member usage target for this group
   capped: boolean;
   ccBudgetUsd: number | null;
   stopUsageBudget: boolean;
@@ -70,6 +72,7 @@ function makeGroup(a: MakeGroupArgs): GroupState {
     licenseValueUsd,
     activeCount,
     ulbCredits: a.ulbUsd / CREDIT_USD,
+    avgDevUsageCredits: a.avgDevUsageCredits,
     capped: a.capped,
     ccBudgetUsd: a.ccBudgetUsd,
     stopUsageBudget: a.stopUsageBudget,
@@ -99,11 +102,12 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         label: cc.name,
         kind: 'cc',
         seats,
-        bizRatio: cc.planMixInherit ? inp.bizRatio : cc.bizRatio,
+        bizRatio: inp.bizRatio, // cost centers always use the enterprise ratio
         inclB,
         inclE,
         activePct: inp.activePct,
         ulbUsd: cc.userLimitInherit ? inp.universalUlbUsd : cc.userLimitUsd,
+        avgDevUsageCredits: cc.avgDevUsageCredits,
         capped: cc.includedCapEnabled,
         ccBudgetUsd: cc.budgetUsd,
         stopUsageBudget: cc.stopUsageBudget,
@@ -121,6 +125,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     inclE,
     activePct: inp.activePct,
     ulbUsd: inp.universalUlbUsd,
+    avgDevUsageCredits: inp.avgDevUsageCredits,
     capped: false,
     ccBudgetUsd: null,
     stopUsageBudget: inp.stopUsageBudgets,
@@ -152,7 +157,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   // Power users are the first `powerUsers/totalLicenses` fraction of each group's
   // active users. Their monthly usage is modeled at their individual budget,
   // which also caps them (overriding the universal/CC ULB). Normal users consume
-  // the average developer usage, capped by their group's ULB.
+  // their group's average developer usage, capped by their group's ULB.
   const powerFraction = inp.totalLicenses > 0 ? inp.powerUsers / inp.totalLicenses : 0;
   const powerBudgetCredits = inp.avgPowerUserBudgetUsd / CREDIT_USD;
   const users: UserState[] = [];
@@ -161,7 +166,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     g.powerCount = powerCount;
     for (let i = 0; i < g.activeCount; i++) {
       const isPower = i < powerCount;
-      const target = isPower ? powerBudgetCredits : inp.avgDevUsageCredits;
+      const target = isPower ? powerBudgetCredits : g.avgDevUsageCredits;
       const ulb = isPower ? powerBudgetCredits : g.ulbCredits;
       const monthly = lognormal(rng, target, inp.usageVariation);
       const weights: number[] = [];

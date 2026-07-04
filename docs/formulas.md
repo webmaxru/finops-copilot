@@ -28,7 +28,7 @@ $$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?
 
 $L,\ \rho_B,\ \alpha,\ \bar u,\ n_{\text{pow}},\ B_{\text{pow}},\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{exCC},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ n_{\text{pow}}{=}10,\ B_{\text{pow}}{=}\$190,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$2{,}620,\ \mathrm{promo}{=}\text{false},\ \mathrm{exCC}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (§5.2); $n_{\text{pow}}$ is the number of power users and $B_{\text{pow}}$ their individual budget (§2.1); $\mathrm{exCC}$ is the enterprise-budget "exclude cost-center usage" flag (§6c). The engine assumes the "AI credit paid usage" policy is enabled (§5.7 of `billing-model.md`).
 
-Each cost center $cc$ carries: `members` $s_{cc}$, plan-mix (inherit or own $\rho_{cc}$), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, and `includedCapEnabled` (AI credit pool cap on/off — the API's only cost-center pool parameter, `ai_credit_pool_enabled`; there is **no** per-CC block/overage field).
+Each cost center $cc$ carries: `members` $s_{cc}$, its own average developer usage $\bar u_{cc}$ (credits; §4), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, and `includedCapEnabled` (AI credit pool cap on/off — the API's only cost-center pool parameter, `ai_credit_pool_enabled`; there is **no** per-CC block/overage field). Cost centers **always** use the enterprise Business/Enterprise ratio $\rho_B$ (no per-CC plan mix). The shipped default has two predefined cost centers — a **High usage** CC (30 seats, $\bar u_{cc}=2\bar u$) and a **Low usage** CC (the remaining 70 seats, $\bar u_{cc}=\tfrac12\bar u$).
 
 > **Design invariant (governance vs. what-if).** Every input that changes the *simulated outcome* is exactly one of two kinds: **(1) a behavioral / sizing what-if assumption** the analyst makes about their own org — total users, plan mix, active %, usage level $\bar u$ and variation $v$, power-user count $n_{\text{pow}}$ — which has **no** GitHub setting and is tagged **[Assumption]**; or **(2) a governance control** — the universal / cost-center / individual **user-level budgets**, the **cost-center and enterprise metered budgets**, their **"stop usage"** flags, the cost-center **included-usage cap** (AI credit pool, on/off), and the enterprise-budget **"exclude cost-center usage"** flag — each of which **must** correspond to a real GitHub governance control exposed in the **UI or REST API** and is cited with a `[Bn]` tag. No knob that affects spend or blocking may model a mechanism GitHub does not actually offer; the provenance table below and §5–§6 enforce this by tagging every governance control **Doc [Bn]** and every assumption **A**.
 
@@ -72,8 +72,8 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 
 | Parameter | Min | Max | Default | Basis (formula / rationale / source) |
 |---|---|---|---|---|
-| CC members (seats) | 0 · **A** | $\min(1000,\ L-\!\sum_{\text{other CC}})$ · **Calc + Doc** | 30 · **A** | a seat belongs to one cost center ⇒ $\sum$ members $\le L$ [B10]; 1,000 cap is **A**; live (§9); default clamps to remaining seats on add |
-| CC Business share (own) | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | as global; used only when not inheriting |
+| CC members (seats) | 0 · **A** | $\min(1000,\ L-\!\sum_{\text{other CC}})$ · **Calc + Doc** | 30 (High) / 70 (Low) · **A** | a seat belongs to one cost center ⇒ $\sum$ members $\le L$ [B10]; 1,000 cap is **A**; live (§9); default clamps to remaining seats on add. Two predefined CCs seed the default (High usage 30, Low usage = the rest) |
+| CC avg developer usage $\bar u_{cc}$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | High 10,000 (2×), Low 2,500 (½×), added 5,000 · **A** | same bounds as the enterprise avg usage (§2.2 global); each cost center has its **own** average; the two predefined CCs seed a high/low split (2× and ½× the enterprise default). Cost centers **always** use the enterprise Business/Enterprise ratio — there is no per-CC plan mix |
 | CC per-user limit (own) | $0 · **A** | $500 · **A** | $50 · **A** | fixed range — **not** derived from $\bar u$ (unlike $B_{\text{ind}}$); default CC inherits $B_{\text{ind}}$ instead |
 | CC metered budget $\beta_{cc}$ | $0 · **A** | $\$256\cdot s_{cc}$ · **Calc** | $\$26.20\cdot s_{cc}$ ($786 @ 30 seats) · **Calc** | §5.3: **same per-seat logic as the enterprise limit** (§5.2), scaled by the CC's seats $s_{cc}$: default $=\tfrac{\$2{,}620}{100}s_{cc}$, max $=\$256\,s_{cc}$ (recomputed only when the CC's seats change). Budgets cap metered [B5] |
 | CC included-usage cap ("AI credit pool") | — | — | off · **A** | single boolean `ai_credit_pool_enabled`; when on, the cap **amount** is auto-sized to the CC's own licenses' credits and the excess spills to metered. **No** per-CC block/overage field — what happens at the cap is the enterprise overages policy — **Doc** [B13][B10] |
@@ -107,9 +107,9 @@ U_g &= B^{user}_g / c & &\text{per-user limit in credits — [Fact] [B4]}\\
 \end{aligned}
 $$
 
-**Inheritance** (`engine.ts:104,108`) — **[Fact: these controls exist [B4][B5]]**:
-$$\rho_g=\text{inherit}?\ \rho_B:\rho_{cc},\qquad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc}$$
-The CC metered budget $\beta_g$ is **always an explicit absolute USD value** ($\text{budgetUsd}_{cc}$), taken directly from the CC slider — it is not inherited and no longer a multiple of license value. Its default and slider max scale with the CC's own seats (§5.3). **[Assumption of parametrization]**
+**Inheritance** (`engine.ts:104,109`) — **[Fact: these controls exist [B4][B5]]**:
+$$\rho_g=\rho_B\ \text{(always — no per-CC plan mix)},\qquad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc}$$
+Every group uses the enterprise Business/Enterprise ratio $\rho_B$. The CC metered budget $\beta_g$ is **always an explicit absolute USD value** ($\text{budgetUsd}_{cc}$), taken directly from the CC slider — not inherited and not a multiple of license value; its default and slider max scale with the CC's own seats (§5.3). **[Assumption of parametrization]**
 
 **Unassigned group** (`engine.ts:116-132`): $s_U=\max(0,\ L-\sum_{cc}s_{cc})$, business share $\rho_B$, $U_U=B_{\text{ind}}/c$, never capped, $\beta_U=\text{null}$. **[Fact: seats not in a cost center bill to the enterprise [B11]]**
 
@@ -121,9 +121,9 @@ The CC metered budget $\beta_g$ is **always an explicit absolute USD value** ($\
 
 Power users are the first $\lfloor A_g\,\phi \rceil$ active users of each group, where $\phi = \text{powerUsers}/L$ is the power-user share of all licensed users (`engine.ts:150`). Each user has a monthly **target** $\tau_i$ and a per-user **limit** $U_i$ (`engine.ts:151-165`):
 
-$$(\tau_i,\ U_i) = \begin{cases} (B_{\text{pow}},\ B_{\text{pow}}) & \text{power user — individual budget override (§2.1) [B16]}\\ (\bar u,\ U_g) & \text{normal user — limit is the group's universal/CC ULB}\end{cases}$$
+$$(\tau_i,\ U_i) = \begin{cases} (B_{\text{pow}},\ B_{\text{pow}}) & \text{power user — individual budget override (§2.1) [B16]}\\ (\bar u_g,\ U_g) & \text{normal user — target is the group's avg usage; limit is its universal/CC ULB}\end{cases}$$
 
-where $B_{\text{pow}} = \text{avgPowerUserBudget}/c$ (credits). A power user is modeled to consume at their individual budget, which **also caps them**, overriding the universal/CC ULB (GitHub's power-user override guidance [B16]).
+where $B_{\text{pow}} = \text{avgPowerUserBudget}/c$ (credits) and $\bar u_g$ is the group's average developer usage — the enterprise $\bar u$ for the unassigned group, or the cost center's own $\bar u_{cc}$ (§2.2). A power user is modeled to consume at their individual budget, which **also caps them**, overriding the universal/CC ULB (GitHub's power-user override guidance [B16]).
 
 Monthly draw (`engine.ts:156`) and daily allocation (`engine.ts:157-164`):
 $$\mu_i \sim \mathrm{LogNormal}(\text{mean}=\tau_i,\ \mathrm{CV}=v), \qquad
@@ -222,7 +222,7 @@ This single condition unifies **every** hard stop the model supports — it is n
 
 (The AI credit pool cap itself does **not** block: its leftover always spills to metered, since overages are assumed enabled — §6b.) Being served in full ($\text{spent}=x_{i,d}$, i.e. reaching a limit *exactly*) is **not** blocked. When no stop flag is on and no budget binds, only the user limit can block, so this matches the earlier user-limit-only behaviour; turning on a metered-budget stop that binds now correctly counts the users it cuts off (previously undercounted).
 
-Evaluation order across a request is exactly **user-limit → pool → CC budget → enterprise budget**, matching GitHub's documented order. [B4]
+Evaluation order across a request follows GitHub's documented order [B4] (*"How billing flows through budgets"*): **user-level budget → shared pool → cost-center budget → enterprise budget**. The applicable user-level budget is the **most specific**: an **individual (power-user) budget overrides the cost-center ULB, which overrides the universal ULB**, and user-level budgets **always hard-stop**. Cost-center/enterprise budgets act only in the metered phase and block only when their "stop usage" flag is on. (GitHub also has an organization-scoped budget between the CC and enterprise scopes; the app does not model it.)
 
 ---
 

@@ -1,6 +1,6 @@
 import { useStore, useSimResult } from '../state/store';
 import { RANGES, SEAT_PRICE, ccBudgetMaxUsd } from '../model/defaults';
-import { fmtUsd, fmtCredits, fmtInt, usdToCredits } from '../model/format';
+import { fmtUsd, fmtCredits, fmtInt, usdToCredits, creditsToUsd } from '../model/format';
 import type { CostCenter, GroupSeries } from '../model/types';
 import Slider from './Slider';
 import Toggle from './Toggle';
@@ -50,12 +50,10 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const available = Math.max(0, totalLicenses - othersMembers);
   const membersMax = Math.min(RANGES.ccMembers.max, Math.max(available, cc.members));
 
-  // Business/Enterprise seat split using the CC's *effective* ratio: the
-  // enterprise mix when inheriting, otherwise the CC's own ratio. Matches the
-  // engine's rounding.
+  // Business/Enterprise seat split — cost centers always use the enterprise
+  // ratio (there is no per-CC plan-mix control). Matches the engine's rounding.
   const ccSeats = series?.seats ?? Math.max(0, Math.round(cc.members));
-  const effectiveBizRatio = cc.planMixInherit ? enterpriseBizRatio : cc.bizRatio;
-  const ccBizSeats = Math.round(ccSeats * effectiveBizRatio);
+  const ccBizSeats = Math.round(ccSeats * enterpriseBizRatio);
   const ccEntSeats = ccSeats - ccBizSeats;
 
   return (
@@ -110,35 +108,22 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         (individual budget) · {fmtInt(Math.max(0, (series?.activeUsers ?? 0) - (series?.powerUsers ?? 0)))} normal
       </div>
 
-      <Toggle
-        label="Use enterprise Business/Enterprise plan mix"
-        checked={cc.planMixInherit}
-        onChange={(v) => setPatch({ planMixInherit: v })}
-        caption={
-          cc.planMixInherit
-            ? `${Math.round(enterpriseBizRatio * 100)}/${Math.round((1 - enterpriseBizRatio) * 100)} → ${fmtInt(
-                ccBizSeats,
-              )} Business ($${ccBizSeats * SEAT_PRICE.business}) · ${fmtInt(ccEntSeats)} Enterprise ($${
-                ccEntSeats * SEAT_PRICE.enterprise
-              }) · license value ${fmtUsd(series?.licenseValueUsd ?? 0)}`
-            : undefined
-        }
+      <div className="muted" style={{ fontSize: 12 }}>
+        Enterprise mix {Math.round(enterpriseBizRatio * 100)}/{Math.round((1 - enterpriseBizRatio) * 100)} →{' '}
+        {fmtInt(ccBizSeats)} Business (${ccBizSeats * SEAT_PRICE.business}) · {fmtInt(ccEntSeats)} Enterprise ($
+        {ccEntSeats * SEAT_PRICE.enterprise}) · license value {fmtUsd(series?.licenseValueUsd ?? 0)}
+      </div>
+
+      <Slider
+        label="Average developer monthly usage"
+        value={cc.avgDevUsageCredits}
+        min={RANGES.avgDevUsageCredits.min}
+        max={RANGES.avgDevUsageCredits.max}
+        step={RANGES.avgDevUsageCredits.step}
+        onChange={(v) => setPatch({ avgDevUsageCredits: v })}
+        format={fmtCredits}
+        caption={`${fmtUsd(creditsToUsd(cc.avgDevUsageCredits))}/mo per active normal developer in this cost center`}
       />
-      {!cc.planMixInherit && (
-        <Slider
-          label="Business / Enterprise ratio"
-          value={cc.bizRatio}
-          min={RANGES.bizRatio.min}
-          max={RANGES.bizRatio.max}
-          step={RANGES.bizRatio.step}
-          onChange={(v) => setPatch({ bizRatio: v })}
-          format={(v) => `${Math.round(v * 100)}/${Math.round((1 - v) * 100)}`}
-          variant="ratio"
-          caption={`${fmtInt(ccBizSeats)} Business ($${ccBizSeats * SEAT_PRICE.business}) · ${fmtInt(
-            ccEntSeats,
-          )} Enterprise ($${ccEntSeats * SEAT_PRICE.enterprise})`}
-        />
-      )}
 
       <Toggle
         label="Cost center ULB"

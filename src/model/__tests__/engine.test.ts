@@ -100,6 +100,40 @@ describe('default enterprise-limit constants', () => {
   });
 });
 
+describe('user-level budget precedence (individual > cost center > universal)', () => {
+  it('a cost-center ULB overrides the universal ULB and hard-stops its members', () => {
+    // Universal ULB $500 (loose); this CC sets its own $30 ULB. Members want $50
+    // each but must be capped at $30 (the CC ULB wins), so all are blocked.
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 5000, // $50/user demand
+      userLimitInherit: false,
+      userLimitUsd: 30, // CC ULB below demand and below the universal ULB
+      budgetUsd: 1e9,
+      stopUsageBudget: false,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 500, // loose; must be overridden by the CC ULB
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+        costCenters: [cc],
+      }),
+    );
+    const g = r.costCenters[0];
+    const end = g.days[g.days.length - 1];
+    // 10 members capped at $30 each => $300 total (not $500), everyone blocked.
+    expect(end.includedConsumedUsd + end.meteredUsd).toBeCloseTo(300, 0);
+    expect(g.monthEndBlockedUsers).toBe(g.activeUsers);
+  });
+});
+
 describe('cost-center budget bounds scale with the CC seats', () => {
   it('mirrors the enterprise per-seat default ($26.20) and max ($256)', () => {
     // Same per-seat logic as the enterprise limit, scaled by CC members.
@@ -124,6 +158,7 @@ describe('cost-center budget bounds scale with the CC seats', () => {
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
+      avgDevUsageCredits: 19000, // heavy, forces overage past the $190 own pool
       includedCapEnabled: true,
       budgetUsd: 40,
       stopUsageBudget: true,
@@ -133,7 +168,6 @@ describe('cost-center budget bounds scale with the CC seats', () => {
         totalLicenses: 10,
         bizRatio: 1,
         activePct: 1,
-        avgDevUsageCredits: 19000, // heavy, forces overage past the $190 own pool
         powerUsers: 0,
         universalUlbUsd: 500, // not binding
         usageVariation: 0,
@@ -220,13 +254,19 @@ describe('enterprise budget that excludes cost-center usage', () => {
   it('lets cost centers spend beyond the enterprise budget; only non-CC usage is capped', () => {
     // 20 heavy users: 10 in a cost center (own $2,000 budget), 10 unassigned.
     // Pool = 20*1900 = $380; metered demand ~ $3,420. Enterprise budget = $500.
-    const cc = { ...makeDefaultCostCenter(1), members: 10, budgetUsd: 2000, stopUsageBudget: true };
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000,
+      budgetUsd: 2000,
+      stopUsageBudget: true,
+    };
     const scenario = (excludes: boolean) =>
       base({
         totalLicenses: 20,
         bizRatio: 1,
         activePct: 1,
-        avgDevUsageCredits: 19000, // heavy
+        avgDevUsageCredits: 19000, // heavy (applies to the unassigned users)
         powerUsers: 0,
         universalUlbUsd: 500, // not binding
         usageVariation: 0,
@@ -261,6 +301,7 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
+      avgDevUsageCredits: 19000, // demand $1,900 >> the $190 own pool
       includedCapEnabled: true,
       budgetUsd: 5000,
       stopUsageBudget: true,
@@ -270,7 +311,6 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
         totalLicenses: 10,
         bizRatio: 1,
         activePct: 1,
-        avgDevUsageCredits: 19000, // demand $1,900 >> the $190 own pool
         powerUsers: 0,
         universalUlbUsd: 500,
         usageVariation: 0,
@@ -281,6 +321,92 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
     // Own pool = 10*1900 = 19,000 cr = $190 (included cap); the rest spills to metered.
     expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
     expect(r.monthEndMeteredUsd).toBeCloseTo(1710, 0);
+  });
+
+  it('a capped high-usage CC does not drain a low-usage CC included pool', () => {
+    // High CC (heavy) + Low CC (light), both 10 business seats. Each funds $190
+    // of the shared pool. No budgets/ULB bind, no enterprise cap.
+    const mk = (highCapped: boolean) => {
+      const high = {
+        ...makeDefaultCostCenter(1),
+        members: 10,
+        avgDevUsageCredits: 19000, // $190/user demand
+        includedCapEnabled: highCapped,
+        budgetUsd: 1e9,
+        stopUsageBudget: false,
+      };
+      const low = {
+        ...makeDefaultCostCenter(2),
+        members: 10,
+        avgDevUsageCredits: 1900, // $19/user demand (light)
+        includedCapEnabled: false,
+        budgetUsd: 1e9,
+        stopUsageBudget: false,
+      };
+      return base({
+        totalLicenses: 20,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 1000, // not binding
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+        costCenters: [high, low],
+      });
+    };
+    const uncapped = runSimulation(mk(false));
+    const capped = runSimulation(mk(true));
+    const lowEnd = (r: typeof uncapped) => {
+      const low = r.costCenters[1];
+      return low.days[low.days.length - 1];
+    };
+    const lowUncapped = lowEnd(uncapped);
+    const lowCapped = lowEnd(capped);
+
+    // Uncapped: the heavy High CC drains the shared pool, starving the Low CC's
+    // included usage. Capping High carves its credits out, so Low keeps its own.
+    expect(lowCapped.includedConsumedUsd).toBeGreaterThan(lowUncapped.includedConsumedUsd + 50);
+    // With High capped, Low keeps ~its own $190 pool and meters nothing.
+    expect(lowCapped.includedConsumedUsd).toBeCloseTo(190, 0);
+    expect(lowCapped.meteredUsd).toBeLessThan(lowUncapped.meteredUsd);
+  });
+
+  it('each cost center consumes at its own average developer usage', () => {
+    const high = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 10000, // $100/user
+      budgetUsd: 1e9,
+      stopUsageBudget: false,
+    };
+    const low = {
+      ...makeDefaultCostCenter(2),
+      members: 10,
+      avgDevUsageCredits: 2500, // $25/user
+      budgetUsd: 1e9,
+      stopUsageBudget: false,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 20,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 1000, // not binding
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+        costCenters: [high, low],
+      }),
+    );
+    const total = (i: number) => {
+      const g = r.costCenters[i];
+      const end = g.days[g.days.length - 1];
+      return end.includedConsumedUsd + end.meteredUsd;
+    };
+    expect(total(0)).toBeCloseTo(1000, 0); // 10 * $100
+    expect(total(1)).toBeCloseTo(250, 0); // 10 * $25
   });
 });
 
