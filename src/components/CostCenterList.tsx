@@ -15,26 +15,43 @@ export default function CostCenterList() {
 
   return (
     <section className="panel" style={{ display: 'grid', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
         <h2 style={{ margin: 0 }}>Cost centers</h2>
-        <button type="button" onClick={addCostCenter} disabled={full} title={full ? 'No licenses left to assign' : undefined}>
+        <span style={{ fontSize: 13, color: over ? 'var(--limit)' : 'var(--muted)' }}>
+          {fmtInt(assigned)}/{fmtInt(totalLicenses)} licenses assigned · {fmtInt(Math.max(0, remaining))}{' '}
+          unassigned{over ? ' · exceeds total — reduce members' : ''}
+        </span>
+      </div>
+
+      <div className="cc-grid">
+        {costCenters.map((cc) => (
+          <CostCenterCard key={cc.id} id={cc.id} />
+        ))}
+        <button
+          type="button"
+          className="cc-add-card"
+          onClick={addCostCenter}
+          disabled={full}
+          title={full ? 'No licenses left to assign' : 'Add a cost center'}
+        >
+          <span className="cc-add-plus" aria-hidden>
+            +
+          </span>
           Add cost center
         </button>
       </div>
 
-      <div style={{ fontSize: 13, color: over ? 'var(--limit)' : 'var(--muted)' }}>
-        {fmtInt(assigned)} / {fmtInt(totalLicenses)} licenses assigned to cost centers ·{' '}
-        {fmtInt(Math.max(0, remaining))} unassigned
-        {over ? ' · exceeds total licenses — reduce members' : ''}
-      </div>
-
-      {costCenters.map((cc) => (
-        <CostCenterCard key={cc.id} id={cc.id} />
-      ))}
-
       <div className="muted" style={{ fontSize: 13 }}>
-        Unassigned: {fmtInt(sim.unassigned.seats)} seats ({fmtInt(sim.unassigned.activeUsers)} active) · draw from
-        the shared pool under the enterprise limits
+        Unassigned: {fmtInt(sim.unassigned.seats)} seats ({fmtInt(sim.unassigned.activeUsers)} active) · draw
+        from the shared pool under the enterprise limits
       </div>
     </section>
   );

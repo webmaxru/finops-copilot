@@ -24,8 +24,8 @@ export type RefLine = { y: number; label: string; color: string };
 
 interface SpendChartProps {
   data: SpendPoint[];
-  /** Current day marker. */
-  day: number;
+  /** Optional current-day marker (omitted now that the dashboard is monthly). */
+  day?: number;
   /** Legend name for the included-credits area (e.g. "Included pool left" vs "Included used"). */
   includedName: string;
   /** Active users — sets the right-axis (blocked users) domain. */
@@ -123,7 +123,7 @@ export default function SpendChart({
               label={{ value: r.label, fill: 'var(--muted)', fontSize: 10, position: 'insideTopRight' }}
             />
           ))}
-          <ReferenceLine yAxisId="usd" x={day} stroke="var(--primary)" />
+          {day != null && <ReferenceLine yAxisId="usd" x={day} stroke="var(--primary)" />}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

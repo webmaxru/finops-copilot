@@ -4,12 +4,23 @@ import { DEFAULT_INPUTS, makeDefaultCostCenter, ccBudgetDefaultUsd } from '../mo
 import { runSimulation } from '../model/engine';
 import type { CostCenter, EnterpriseInputs, SimResult } from '../model/types';
 
+export type Theme = 'dark' | 'light';
+
+function initialTheme(): Theme {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const t = localStorage.getItem('theme');
+      if (t === 'light' || t === 'dark') return t;
+    }
+  } catch {
+    /* ignore (SSR / privacy mode) */
+  }
+  return 'dark';
+}
+
 interface Store {
   inputs: EnterpriseInputs;
-  // timeline / animation UI state (does not affect the simulation)
-  day: number; // 1..30
-  playing: boolean;
-  speed: number; // 1, 2, 4
+  theme: Theme;
 
   setInput: <K extends keyof EnterpriseInputs>(key: K, value: EnterpriseInputs[K]) => void;
   addCostCenter: () => void;
@@ -17,16 +28,12 @@ interface Store {
   updateCostCenter: (id: string, patch: Partial<CostCenter>) => void;
   reshuffle: () => void;
   reset: () => void;
-  setDay: (d: number) => void;
-  setPlaying: (p: boolean) => void;
-  setSpeed: (s: number) => void;
+  toggleTheme: () => void;
 }
 
 export const useStore = create<Store>((set) => ({
   inputs: DEFAULT_INPUTS(),
-  day: 30,
-  playing: false,
-  speed: 1,
+  theme: initialTheme(),
 
   setInput: (key, value) => set((s) => ({ inputs: { ...s.inputs, [key]: value } })),
 
@@ -57,11 +64,18 @@ export const useStore = create<Store>((set) => ({
 
   reshuffle: () => set((s) => ({ inputs: { ...s.inputs, seed: Math.floor(Math.random() * 1e9) } })),
 
-  reset: () => set({ inputs: DEFAULT_INPUTS(), day: 30, playing: false, speed: 1 }),
+  reset: () => set({ inputs: DEFAULT_INPUTS() }),
 
-  setDay: (d) => set({ day: d }),
-  setPlaying: (p) => set({ playing: p }),
-  setSpeed: (s) => set({ speed: s }),
+  toggleTheme: () =>
+    set((s) => {
+      const theme: Theme = s.theme === 'dark' ? 'light' : 'dark';
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem('theme', theme);
+      } catch {
+        /* ignore */
+      }
+      return { theme };
+    }),
 }));
 
 /** Recomputes the simulation only when the engine inputs change. */

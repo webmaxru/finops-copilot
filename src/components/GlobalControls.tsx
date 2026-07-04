@@ -14,7 +14,6 @@ export default function GlobalControls() {
   const usageVariation = useStore((s) => s.inputs.usageVariation);
   const universalUlbUsd = useStore((s) => s.inputs.universalUlbUsd);
   const enterpriseLimitUsd = useStore((s) => s.inputs.enterpriseLimitUsd);
-  const promo = useStore((s) => s.inputs.promo);
   const enterpriseBudgetExcludesCostCenters = useStore((s) => s.inputs.enterpriseBudgetExcludesCostCenters);
   const stopUsageBudgets = useStore((s) => s.inputs.stopUsageBudgets);
   const setInput = useStore((s) => s.setInput);
@@ -171,13 +170,6 @@ export default function GlobalControls() {
           checked={enterpriseBudgetExcludesCostCenters}
           onChange={(b) => setInput('enterpriseBudgetExcludesCostCenters', b)}
           caption="When on, the enterprise budget limits only usage NOT in a cost center; each cost center then spends under its own budget on top (raising the max bill). Default off (the budget includes all usage)."
-        />
-
-        <Toggle
-          label="Promo allowances"
-          checked={promo}
-          onChange={(b) => setInput('promo', b)}
-          caption="3,000 / 7,000 included credits until Sep 1 2026 (otherwise 1,900 / 3,900)"
         />
 
         <Toggle

@@ -1,4 +1,4 @@
-import { useSimResult, useStore } from '../state/store';
+import { useSimResult } from '../state/store';
 import type { DaySnapshot } from '../model/types';
 import SpendChart, { type SpendPoint } from './SpendChart';
 
@@ -14,15 +14,13 @@ function toPoint(x: DaySnapshot): SpendPoint {
 
 export default function BurndownChart() {
   const sim = useSimResult();
-  const day = useStore((s) => s.day);
   const data = sim.enterprise.days.map(toPoint);
 
   return (
     <section className="panel">
-      <h2 style={{ marginTop: 0 }}>Enterprise: included pool draining vs. metered spend</h2>
+      <h2 style={{ marginTop: 0 }}>Enterprise: included pool draining vs. metered spend (month)</h2>
       <SpendChart
         data={data}
-        day={day}
         includedName="Included pool left ($)"
         activeUsers={sim.activeUsers}
         height={300}

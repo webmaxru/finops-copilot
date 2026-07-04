@@ -1,12 +1,6 @@
-import { useSimResult, useStore } from '../state/store';
-import { fmtCredits, fmtUsd } from '../model/format';
-import type { DaySnapshot, SimResult } from '../model/types';
+import { useSimResult } from '../state/store';
+import { fmtUsd } from '../model/format';
 import type { ReactNode } from 'react';
-
-function currentSnapshot(sim: SimResult, day: number): DaySnapshot | undefined {
-  const index = Math.min(Math.max(day, 1), 30) - 1;
-  return sim.enterprise.days[index];
-}
 
 function KpiCard({
   label,
@@ -32,10 +26,8 @@ function KpiCard({
 
 export default function KpiCards() {
   const sim = useSimResult();
-  const day = useStore((s) => s.day);
-  const d = currentSnapshot(sim, day);
   const poolExhausted =
-    sim.poolExhaustedDay === null ? 'never' : `${sim.poolExhaustedDay} (day)`;
+    sim.poolExhaustedDay === null ? 'never' : `day ${sim.poolExhaustedDay}`;
 
   return (
     <section
@@ -52,7 +44,7 @@ export default function KpiCards() {
       </KpiCard>
 
       <KpiCard label="Max possible bill" value={fmtUsd(sim.maxBillUsd)}>
-        <span>licenses + enterprise budget</span>
+        <span>licenses + metered budgets</span>
       </KpiCard>
 
       <KpiCard label="Pool exhausted" value={poolExhausted}>
@@ -60,13 +52,7 @@ export default function KpiCards() {
       </KpiCard>
 
       <KpiCard label="Blocked users" value={`${sim.monthEndBlockedUsers}/${sim.activeUsers}`}>
-        <span>hit their limit this month</span>
-      </KpiCard>
-
-      <KpiCard label={`At day ${day}`} value={`bill ${fmtUsd(d?.cumulativeBillUsd ?? sim.licenseFeesUsd)}`}>
-        <span>pool left {fmtCredits(d?.poolRemaining ?? sim.poolCredits)}</span>
-        <span>metered {fmtUsd(d?.meteredUsd ?? 0)}</span>
-        <span>blocked {d?.blockedUsers ?? 0}</span>
+        <span>hit a hard stop this month</span>
       </KpiCard>
     </section>
   );

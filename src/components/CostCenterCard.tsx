@@ -32,6 +32,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const totalLicenses = useStore((s) => s.inputs.totalLicenses);
   const costCenters = useStore((s) => s.inputs.costCenters);
   const universalUlbUsd = useStore((s) => s.inputs.universalUlbUsd);
+  const enterpriseBizRatio = useStore((s) => s.inputs.bizRatio);
   const sim = useSimResult();
 
   if (!cc) return null;
@@ -49,11 +50,12 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const available = Math.max(0, totalLicenses - othersMembers);
   const membersMax = Math.min(RANGES.ccMembers.max, Math.max(available, cc.members));
 
-  // Business/Enterprise seat split for this cost center's own ratio (the ratio
-  // slider is only shown when the CC does not inherit the enterprise mix, so
-  // cc.bizRatio is the effective ratio here). Matches the engine's rounding.
+  // Business/Enterprise seat split using the CC's *effective* ratio: the
+  // enterprise mix when inheriting, otherwise the CC's own ratio. Matches the
+  // engine's rounding.
   const ccSeats = series?.seats ?? Math.max(0, Math.round(cc.members));
-  const ccBizSeats = Math.round(ccSeats * cc.bizRatio);
+  const effectiveBizRatio = cc.planMixInherit ? enterpriseBizRatio : cc.bizRatio;
+  const ccBizSeats = Math.round(ccSeats * effectiveBizRatio);
   const ccEntSeats = ccSeats - ccBizSeats;
 
   return (
@@ -112,6 +114,15 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         label="Use enterprise Business/Enterprise plan mix"
         checked={cc.planMixInherit}
         onChange={(v) => setPatch({ planMixInherit: v })}
+        caption={
+          cc.planMixInherit
+            ? `${Math.round(enterpriseBizRatio * 100)}/${Math.round((1 - enterpriseBizRatio) * 100)} → ${fmtInt(
+                ccBizSeats,
+              )} Business ($${ccBizSeats * SEAT_PRICE.business}) · ${fmtInt(ccEntSeats)} Enterprise ($${
+                ccEntSeats * SEAT_PRICE.enterprise
+              }) · license value ${fmtUsd(series?.licenseValueUsd ?? 0)}`
+            : undefined
+        }
       />
       {!cc.planMixInherit && (
         <Slider

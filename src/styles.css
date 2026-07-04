@@ -19,6 +19,22 @@
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Light theme (applied via <html data-theme="light"> by the ThemeToggle). */
+:root[data-theme='light'] {
+  --bg: #f6f8fa;
+  --panel: #ffffff;
+  --panel-2: #f0f3f6;
+  --border: #d0d7de;
+  --text: #1f2328;
+  --muted: #59636e;
+  --primary: #0969da;
+  --pool: #1a7f37;
+  --metered: #9a6700;
+  --limit: #cf222e;
+  --accent: #8250df;
+  color-scheme: light;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -88,17 +104,91 @@ a {
 
 .app-header {
   margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .app-header h1 {
   font-size: 20px;
-  margin: 8px 0 2px;
+  margin: 0;
 }
 
-.app-header p {
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.app-header .slogan {
   margin: 0;
-  max-width: 80ch;
+  max-width: none; /* full width */
   font-size: 13px;
+}
+
+.icon-btn {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+
+.header-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* (i) info marker + hover/focus popover. */
+.info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 700;
+  cursor: help;
+  user-select: none;
+}
+.info-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: 260px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+}
+.info:hover .info-pop,
+.info:focus .info-pop,
+.info:focus-within .info-pop {
+  opacity: 1;
+  visibility: visible;
 }
 
 .status-bar {
@@ -219,4 +309,42 @@ input[type='range'].ratio-slider::-moz-range-thumb {
   border-color: var(--accent);
   font-weight: 700;
   letter-spacing: 0.03em;
+}
+
+/* Cost-center configuration grid: aim for ~3 cards per row, with an "empty"
+   add-card as the last cell. Collapses on narrower widths. */
+.cc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.cc-add-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 160px;
+  padding: 12px;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+.cc-add-card:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.cc-add-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cc-add-plus {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 300;
 }

@@ -1,5 +1,5 @@
 // Deterministic, seedable pseudo-random utilities used by the simulation
-// engine so that results are stable while scrubbing the timeline.
+// engine so that results are stable across re-renders for a given input.
 
 /** mulberry32 PRNG: returns a function producing floats in [0, 1). */
 export function mulberry32(seed: number): () => number {
