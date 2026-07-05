@@ -1,0 +1,14 @@
+name: finops-copilot
+version: 1.0.0
+description: APM project for finops-copilot
+author: Maxim Salnikov
+targets:
+- copilot
+dependencies:
+  apm:
+  - webmaxru/ai-native-dev/skills/agent-package-manager
+  - anthropics/skills/skills/frontend-design
+  - webmaxru/ai-native-dev/prompts/seo-and-agent-readiness.prompt.md#main
+  mcp: []
+includes: auto
+scripts: {}

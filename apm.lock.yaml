@@ -1,0 +1,56 @@
+lockfile_version: '1'
+generated_at: '2026-07-05T11:38:31.560539+00:00'
+apm_version: 0.23.1
+dependencies:
+- repo_url: anthropics/skills
+  name: skills
+  host: github.com
+  resolved_commit: 9d2f1ae187231d8199c64b5b762e1bdf2244733d
+  version: unknown
+  virtual_path: skills/frontend-design
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/frontend-design
+  - .agents/skills/frontend-design/LICENSE.txt
+  - .agents/skills/frontend-design/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/frontend-design/LICENSE.txt: sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
+    .agents/skills/frontend-design/SKILL.md: sha256:1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd
+  content_hash: sha256:4eabc66183767153e404b39d1b839b1c37f2d82d86f0a0d7e880a579d8d62336
+- repo_url: webmaxru/ai-native-dev
+  name: ai-native-dev
+  host: github.com
+  resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
+  version: unknown
+  virtual_path: skills/agent-package-manager
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/agent-package-manager
+  - .agents/skills/agent-package-manager/SKILL.md
+  - .agents/skills/agent-package-manager/assets/apm.yml.template
+  - .agents/skills/agent-package-manager/references/command-workflows.md
+  - .agents/skills/agent-package-manager/references/manifest-and-lockfile.md
+  - .agents/skills/agent-package-manager/references/troubleshooting.md
+  deployed_file_hashes:
+    .agents/skills/agent-package-manager/SKILL.md: sha256:2aca5d8bb60bd5d3fbcd98d2fd036b1f0aa0caf9bb4a4e7eb7e749473f093618
+    .agents/skills/agent-package-manager/assets/apm.yml.template: sha256:bdb996550d9bb66228d642ab7d8acc30f671605a911f8360356c8816cec96b8c
+    .agents/skills/agent-package-manager/references/command-workflows.md: sha256:1786ff6e657c5c163313b3f5e4367209c44eb3e4a601245e38169e88364c256d
+    .agents/skills/agent-package-manager/references/manifest-and-lockfile.md: sha256:751ba3102a04626d96cdfd0400308704e344fc7d30f9817aefc1308e0be986c8
+    .agents/skills/agent-package-manager/references/troubleshooting.md: sha256:f57abc15c6c6bca5cf6f3fee02690aa68f2859fa4c58e5c8241c4e33b35e8f5f
+  content_hash: sha256:6338d1772fe1fedfca979da05d61c8e74d33b1dccde1ae13a66e0308eaa9b788
+- repo_url: webmaxru/ai-native-dev
+  name: ai-native-dev-seo-and-agent-readiness
+  host: github.com
+  resolved_commit: 8deedfd0f133de32f43d8e4171ac2e5ef38cff51
+  resolved_ref: main
+  version: 1.0.0
+  virtual_path: prompts/seo-and-agent-readiness.prompt.md
+  is_virtual: true
+  package_type: apm_package
+  deployed_files:
+  - .github/prompts/seo-and-agent-readiness.prompt.md
+  deployed_file_hashes:
+    .github/prompts/seo-and-agent-readiness.prompt.md: sha256:4bcaebc8aba4d22b78a3eaf938a377e42794c43cfd67934e8c7614107d752148
+  content_hash: sha256:99eeca3b1d7f2b3ea961562c65f9b693370ba5f48c79341c655f5c0617509cce
