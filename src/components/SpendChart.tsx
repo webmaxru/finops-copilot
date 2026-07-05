@@ -103,6 +103,7 @@ export default function SpendChart({
             stroke="var(--pool)"
             fill="var(--pool)"
             fillOpacity={0.3}
+            isAnimationActive={false}
           />
           <Area
             yAxisId="usd"
@@ -112,14 +113,16 @@ export default function SpendChart({
             stroke="var(--metered)"
             fill="var(--metered)"
             fillOpacity={0.3}
+            isAnimationActive={false}
           />
           <Line
             yAxisId="usd"
             type="monotone"
             dataKey="billUsd"
             name="Cumulative bill ($)"
-            stroke="var(--primary)"
+            stroke="var(--brand)"
             dot={false}
+            isAnimationActive={false}
           />
           <Line
             yAxisId="blocked"
@@ -130,6 +133,7 @@ export default function SpendChart({
             strokeWidth={2}
             strokeDasharray="5 3"
             dot={false}
+            isAnimationActive={false}
           />
           {refLines.map((r) => (
             <ReferenceLine
@@ -141,7 +145,7 @@ export default function SpendChart({
               label={{ value: r.label, fill: 'var(--muted)', fontSize: 10, position: 'insideTopRight' }}
             />
           ))}
-          {day != null && <ReferenceLine yAxisId="usd" x={day} stroke="var(--primary)" />}
+          {day != null && <ReferenceLine yAxisId="usd" x={day} stroke="var(--brand)" />}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

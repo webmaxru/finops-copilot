@@ -78,8 +78,21 @@ export const useStore = create<Store>((set) => ({
     }),
 }));
 
-/** Recomputes the simulation only when the engine inputs change. */
+// The simulation is a pure, deterministic function of `inputs`, but many
+// components read it on the same render. Memoize on the `inputs` reference at
+// module scope so the (heavy) month-long run happens once per change and every
+// component shares the result, instead of each recomputing it independently.
+let simCache: { inputs: EnterpriseInputs; result: SimResult } | null = null;
+
+function runSimulationShared(inputs: EnterpriseInputs): SimResult {
+  if (simCache === null || simCache.inputs !== inputs) {
+    simCache = { inputs, result: runSimulation(inputs) };
+  }
+  return simCache.result;
+}
+
+/** Recomputes the simulation only when the engine inputs change (shared across components). */
 export function useSimResult(): SimResult {
   const inputs = useStore((s) => s.inputs);
-  return useMemo(() => runSimulation(inputs), [inputs]);
+  return useMemo(() => runSimulationShared(inputs), [inputs]);
 }

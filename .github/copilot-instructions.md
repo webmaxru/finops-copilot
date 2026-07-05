@@ -62,3 +62,12 @@ This app auto-deploys to **GitHub Pages** via [`.github/workflows/deploy.yml`](.
 - The engine is a **pure, deterministic** function of its inputs (`runSimulation`). Keep it pure; do not add side effects or non-seeded randomness.
 - Keep the **[Fact] vs [Assumption]** distinction honest — it is the reason this simulator can be trusted and extended.
 - The full source research is retained at `research/do-detailed-research-on-how-github-copilot-usage-b.md` (session workspace) and summarized in `docs/references.md`.
+
+## Design context
+
+Two root files define the product strategy and visual system for design work; read them before changing UI or visual behavior:
+
+- [`PRODUCT.md`](../PRODUCT.md) — register (`product`), users, purpose, brand personality, anti-references, and strategic design principles.
+- [`DESIGN.md`](../DESIGN.md) — the visual system (deep-ink "The Meter" theme): color tokens, typography, elevation, components, and do's/don'ts. Its machine-readable sidecar lives at [`.impeccable/design.json`](../.impeccable/design.json).
+
+These are the design counterpart to the calculation spec in `docs/`; keep them current when the UI's meaning or visual system changes. This is separate from — and does not relax — the golden rule above: any change to the numbers still ships with its `docs/` update.
