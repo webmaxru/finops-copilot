@@ -3,12 +3,125 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Copilot Enterprise Spend Simulator</title>
+    <!-- Primary metadata -->
+    <title>Copilot Enterprise Spend Simulator — GitHub AI-Credit FinOps Tool</title>
     <meta
       name="description"
-      content="Simulate monthly GitHub Copilot spend for enterprises (Business + Enterprise seats) with multiple cost centers."
+      content="Simulate monthly GitHub Copilot enterprise spend across Business & Enterprise seats and cost centers — size the credit pool, set budgets, and see where usage meters."
     />
-    <meta name="theme-color" content="#0a0e1a" />
+    <link rel="canonical" href="https://webmaxru.github.io/finops-copilot/" />
+    <meta name="author" content="webmaxru" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta
+      name="googlebot"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+    <meta
+      name="keywords"
+      content="GitHub Copilot, usage-based billing, AI credits, Copilot Business, Copilot Enterprise, cost center, FinOps, spend simulator, budget, metered usage"
+    />
+
+    <!-- Theme (deep-ink dark default; light variant) -->
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#080b16" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaeef7" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="application-name" content="Copilot Enterprise Spend Simulator" />
+    <meta name="apple-mobile-web-app-title" content="Copilot Spend" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Icons & PWA manifest (root paths; Vite rebases to the deployed base) -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <!-- Open Graph (LinkedIn / Facebook / Slack / Discord) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Copilot Enterprise Spend Simulator" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Copilot Enterprise Spend Simulator" />
+    <meta
+      property="og:description"
+      content="Model a month of GitHub Copilot AI-credit spend across Business & Enterprise seats and cost centers — size the pool, set budgets and per-user limits, and see where usage meters or gets blocked."
+    />
+    <meta property="og:url" content="https://webmaxru.github.io/finops-copilot/" />
+    <meta property="og:image" content="https://webmaxru.github.io/finops-copilot/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Copilot Enterprise Spend Simulator — a bill-composition meter showing license, metered, and limit segments."
+    />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Copilot Enterprise Spend Simulator" />
+    <meta
+      name="twitter:description"
+      content="Model a month of GitHub Copilot AI-credit spend across Business & Enterprise seats and cost centers — size the pool, set budgets, and see where usage meters or gets blocked."
+    />
+    <meta name="twitter:image" content="https://webmaxru.github.io/finops-copilot/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Copilot Enterprise Spend Simulator — a bill-composition meter showing license, metered, and limit segments."
+    />
+
+    <!-- Structured data (schema.org) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://webmaxru.github.io/finops-copilot/#website",
+            "url": "https://webmaxru.github.io/finops-copilot/",
+            "name": "Copilot Enterprise Spend Simulator",
+            "description": "A browser-only simulator of monthly GitHub Copilot enterprise spend across Business and Enterprise seats and multiple cost centers.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://webmaxru.github.io/finops-copilot/#author" }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://webmaxru.github.io/finops-copilot/#webapp",
+            "url": "https://webmaxru.github.io/finops-copilot/",
+            "name": "Copilot Enterprise Spend Simulator",
+            "description": "Simulate monthly GitHub Copilot enterprise spend across Business and Enterprise seats and cost centers — size the included credit pool, set budgets and per-user limits, and see where usage meters or gets blocked. Runs entirely in the browser.",
+            "applicationCategory": "FinanceApplication",
+            "applicationSubCategory": "FinOps cost simulator",
+            "operatingSystem": "Any (modern web browser)",
+            "browserRequirements": "Requires JavaScript and a modern web browser",
+            "inLanguage": "en",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "image": "https://webmaxru.github.io/finops-copilot/og-image.png",
+            "isPartOf": { "@id": "https://webmaxru.github.io/finops-copilot/#website" },
+            "author": { "@id": "https://webmaxru.github.io/finops-copilot/#author" },
+            "publisher": { "@id": "https://webmaxru.github.io/finops-copilot/#author" },
+            "keywords": "GitHub Copilot, usage-based billing, AI credits, cost center, FinOps, spend simulator, budget",
+            "featureList": [
+              "Enterprise-wide inputs: seat count, Business/Enterprise plan mix, active-usage share",
+              "Universal and power-user (individual override) budgets and per-user limits",
+              "Multiple cost centers with metered budgets and included-usage caps",
+              "Animated day 1 to 30 simulation of the shared credit pool draining and metered overage",
+              "KPI readouts, burndown and spend charts, and budget/limit warnings"
+            ]
+          },
+          {
+            "@type": "Person",
+            "@id": "https://webmaxru.github.io/finops-copilot/#author",
+            "name": "webmaxru",
+            "url": "https://github.com/webmaxru"
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,6 +131,37 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main
+        style="max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem; color: #eaf0ff; font-family: system-ui, sans-serif; line-height: 1.55;"
+      >
+        <h1 style="font-size: 1.9rem; line-height: 1.1; margin: 0 0 0.75rem;">
+          Copilot Enterprise Spend Simulator
+        </h1>
+        <p style="color: #c1cbe6; margin: 0 0 1rem;">
+          A browser-only simulator that models one month of <strong>GitHub Copilot</strong>
+          enterprise spend under usage-based (AI-credit) billing — across Copilot
+          <strong>Business</strong> and <strong>Enterprise</strong> seats and multiple
+          <strong>cost centers</strong>. It shows the shared included credit pool draining and
+          metered (overage) cost growing until it hits your configured budgets and limits.
+        </p>
+        <p style="color: #c1cbe6; margin: 0 0 1rem;">
+          Adjust smart-default sliders, add or remove cost centers, then play an animated day
+          1&nbsp;&rarr;&nbsp;30 simulation and read the KPIs, burndown/spend charts, and warnings.
+          Every billing rule is validated against official GitHub documentation and tagged
+          <em>[Fact]</em>, <em>[Derived]</em>, or <em>[Assumption]</em>.
+        </p>
+        <p style="color: #c1cbe6; margin: 0 0 1rem;">
+          <strong>This is an interactive tool that needs JavaScript to run.</strong> Enable
+          JavaScript, or explore the source and its full calculation documentation:
+        </p>
+        <ul style="color: #c1cbe6;">
+          <li><a href="https://github.com/webmaxru/finops-copilot" style="color: #8f99ff;">Source repository</a></li>
+          <li><a href="https://github.com/webmaxru/finops-copilot/blob/main/docs/README.md" style="color: #8f99ff;">Calculation documentation</a> (formulas, billing model, engine, citations)</li>
+          <li><a href="llms.txt" style="color: #8f99ff;">llms.txt</a> and <a href="llms-full.txt" style="color: #8f99ff;">llms-full.txt</a> for AI agents</li>
+        </ul>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

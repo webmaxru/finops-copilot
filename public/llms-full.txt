@@ -1,0 +1,688 @@
+# Copilot Enterprise Spend Simulator — full text for AI agents
+
+> The complete readable text behind the simulator: its README plus the formal
+> calculation documentation (formulas, billing model, engine, and official-source
+> citations). The app itself (https://webmaxru.github.io/finops-copilot/) is a client-rendered React tool, so this file
+> exposes its underlying knowledge in full to agents that do not execute JavaScript.
+
+Live app: https://webmaxru.github.io/finops-copilot/
+Source:   https://github.com/webmaxru/finops-copilot
+Structured index: https://webmaxru.github.io/finops-copilot/llms.txt
+
+Every billing rule below is validated against official GitHub documentation and
+tagged [Fact], [Derived], or [Assumption]. The engine is a pure, deterministic
+(seeded) function of its inputs; the tool is a decision-support instrument for
+quick validation, not an invoice, and does not model per-token pricing.
+
+
+
+==============================================================================
+# Project README  (source: README.md)
+
+==============================================================================
+
+# Copilot Enterprise Spend Simulator
+
+A **static web app** that simulates monthly **GitHub Copilot** spend for enterprises using **Copilot Business** and **Copilot Enterprise** seats — with a focus on **multiple cost centers**. Adjust a handful of smart-default sliders, add/remove cost centers, then **play an animated day 1→30 simulation** that shows the shared **included credit pool draining** and **metered (overage) cost growing until it hits your limits**.
+
+Built with React + TypeScript + Vite. No backend — it runs entirely in the browser.
+
+## Why
+
+GitHub moved Copilot to **usage-based billing (AI credits)** on **June 1, 2026**. Spend is now:
+
+```
+total bill = license fees (fixed)  +  metered usage (after the shared included pool drains)
+```
+
+This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70/30, cap people at $50, and split teams into cost centers, what will we actually pay, and who gets blocked?"* — without spreadsheets.
+
+## How it maps to real GitHub billing
+
+| Concept in the app | GitHub reality |
+|---|---|
+| 1 credit = **$0.01** | Fixed AI-credit conversion |
+| Business **1,900 cr / $19**, Enterprise **3,900 cr / $39** per seat | Included allowance per seat (promo **3,000 / 7,000** until **Sep 1 2026**) |
+| Included pool | Credits **pooled at the enterprise level**, funded by all seats |
+| Universal ULB (universal user-level budget) | **User-level budget** for normal users — caps a person's *total* (pool + metered) use, **always hard-stops** |
+| Power-user override (number of power users + average power-user budget) | **Individual budget override** — power users get a higher per-user budget that overrides the universal ULB ([power-user override guidance](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides)) |
+| Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
+| Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
+| Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
+| Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits (block or overage) — *API-only today* |
+| Stop-usage toggle | Real-world default is **OFF** (alerts only); on here so you can model hard caps |
+| Code completions / next-edit | **Not billed** — excluded from the model |
+
+Billing facts are sourced from official GitHub documentation; see the research report that accompanies this project.
+
+## Inputs
+
+**Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), an **"enterprise budget excludes cost-center usage"** toggle, promo-allowances toggle, stop-usage toggle.
+
+**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; excess spills to metered).
+
+Every non-USD slider shows its **USD equivalent** live.
+
+### "Usage variation" explained
+
+How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable while you scrub the timeline — use **Reshuffle usage** to resample).
+
+## Getting started
+
+```bash
+npm install
+npm run dev        # local dev server
+npm run build      # typecheck + production build to dist/
+npm run preview    # preview the production build
+npm test           # run the engine unit tests (Vitest)
+```
+
+## Deploy to GitHub Pages
+
+A workflow is included at `.github/workflows/deploy.yml`:
+
+1. Push to `main`.
+2. In the repo: **Settings → Pages → Build and deployment → Source = GitHub Actions**.
+3. The workflow builds and publishes `dist/`.
+
+`vite.config.ts` uses `base: './'`, so the built SPA works on any Pages project subpath (`https://<user>.github.io/<repo>/`) without hardcoding the repo name.
+
+## Accuracy & caveats
+
+- A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
+- Two cost-center controls (per-user budget, included-usage cap) are **API-only today** — labeled in the UI.
+- Promo allowances expire **Sep 1 2026**; model/pricing figures are **as of 2026-07**.
+- Pricing constants live in `src/model/defaults.ts` for easy updates.
+
+## Project layout
+
+```
+src/
+  model/      pricing constants, types, seeded RNG, formatters, simulation engine (+ tests)
+  state/      Zustand store + useSimResult() hook (memoized recompute)
+  components/ GlobalControls, CostCenterList/Card, Timeline, PlayControls,
+              KpiCards, BurndownChart, CostCenterCharts, Warnings, AssumptionsFooter,
+              Slider, Toggle
+docs/         formal calculation reference (formulas, billing model, engine, citations)
+```
+
+The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so timeline scrubbing/animation is cheap.
+
+## Calculation documentation
+
+Every formula and its interconnections are formally documented in [`docs/`](./docs/), with each billing rule cited to official GitHub documentation and each item tagged **[Fact]** (GitHub-documented), **[Derived]**, or **[Assumption]** (simulator modeling choice):
+
+- [`docs/README.md`](./docs/README.md) — index, notation, scope boundary
+- [`docs/formulas.md`](./docs/formulas.md) — every symbol and formula with code refs + sources
+- [`docs/billing-model.md`](./docs/billing-model.md) — the GitHub rules the engine is built on (and the documented mechanics it deliberately omits)
+- [`docs/simulation-engine.md`](./docs/simulation-engine.md) — data-flow graph and the end-to-end algorithm
+- [`docs/references.md`](./docs/references.md) — consolidated citation list
+
+> **Contributing:** [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) (and [`AGENTS.md`](./AGENTS.md)) require that any calculation change and its `docs/` update ship together, that website changes update the docs when relevant, and that every change is validated against official GitHub documentation.
+
+
+
+==============================================================================
+# Calculation documentation — index  (source: docs/README.md)
+
+==============================================================================
+
+# FinOps Copilot — Calculation Documentation
+
+Formal reference for **every quantity, formula, and dependency** used by the spend simulator, plus the **official GitHub documentation** that justifies each billing rule. Written to be relied on for further development.
+
+> Code links in these documents are pinned to commit **`a033e79`**. If you change the engine, update the corresponding formula and its line reference here.
+
+## Documents
+
+| File | Contents |
+|------|----------|
+| [`billing-model.md`](./billing-model.md) | The real GitHub Copilot usage-based billing rules the simulator is built on, each with a documentation link. Includes rules the engine deliberately does **not** implement (token→credit conversion, auto-select discount, data-residency surcharge) and where they would plug in. |
+| [`formulas.md`](./formulas.md) | Every symbol and formula in formal notation, with its code location, a source link, and a **Fact / Assumption** tag. This is the canonical reference. **§2.2 provenance table** classifies every value's **min / max / default** as Asserted / Derived / Documented. |
+| [`simulation-engine.md`](./simulation-engine.md) | The end-to-end algorithm: data flow, group construction, the per-day accounting loop, the budget evaluation order, outputs, and warnings — i.e. *how the formulas interconnect*. |
+| [`references.md`](./references.md) | Consolidated list of every cited GitHub documentation URL. |
+
+## Source-of-truth legend
+
+Each formula is tagged so future developers know what is authoritative:
+
+- **[Fact]** — a GitHub-documented billing rule. Changing it means GitHub changed billing; update the citation.
+- **[Assumption]** — a simulator **modeling choice** with no direct GitHub formula (e.g. the statistical usage distribution). Safe to tune; it does not represent official GitHub behavior. Rationale is given inline.
+- **[Derived]** — an arithmetic consequence of Facts (e.g. the pool's dollar value equals license fees).
+
+## Scope boundary (read this first)
+
+The simulator models a developer's **monthly usage directly in AI credits (AICR)** — it does **not** model per-token consumption. Consequently the documented **token→credit conversion**, the **auto-model-selection −10% discount**, and the **data-residency +10% surcharge** are **not** applied by the engine today. They are documented in [`billing-model.md`](./billing-model.md) as the underlying reality and as extension points, because they belong in any future token-level version. Everything the engine *does* compute is specified exactly in [`formulas.md`](./formulas.md).
+
+## Notation
+
+| Symbol | Meaning | Unit |
+|--------|---------|------|
+| $c$ | credit-to-dollar rate | USD / AICR |
+| $p_B, p_E$ | Business / Enterprise seat price | USD / seat / month |
+| $I_B, I_E$ | included credits per Business / Enterprise seat (standard or promo) | AICR / seat / month |
+| $D$ | days in the simulated month | days |
+| $L$ | total users with licenses (assigned seats) | seats |
+| $\rho$ | Business share of a seat pool | fraction $[0,1]$ |
+| $\alpha$ | active fraction (seats that actually use Copilot) | fraction $[0,1]$ |
+| $\bar u$ | average monthly usage of a *normal* active developer | AICR |
+| $\phi$ | power-user share $=$ powerUsers$/L$ (input: **number of power users**, 0..$L$, default $\lfloor 0.1L\rceil$) | fraction |
+| $B_{\text{pow}}$ | **average power-user budget** — a power user's usage **and** limit (overrides ULB); \$38–\$760, default \$190 | USD |
+| $v$ | usage variation (coefficient of variation) | fraction $[0,1]$ |
+| $B_{\text{ind}}$ | **universal user-level budget (ULB)** for normal users (default $\bar u\cdot c$; slider max $10\,\bar u\cdot c$) | USD |
+| $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ \$256\cdot L]$ (max scales with total users) |
+| $g$ | a group: a cost center, or the "unassigned" group | — |
+| $C_g, V_g$ | group $g$ included credits (carveout) / license value | AICR / USD |
+
+The 1 AICR = $0.01 identity means AICR and USD are interchangeable via $\times c$; the engine stores the **pool in credits** and **all budgets/spend in USD**.
+
+
+
+==============================================================================
+# Calculation documentation — formulas  (source: docs/formulas.md)
+
+==============================================================================
+
+# Formulas
+
+Canonical, formal specification of every quantity the engine computes. Each row/section gives the **formula**, its **code location** (pinned to `a033e79`), a **source** (GitHub doc tag `[Bn]` from [`references.md`](./references.md), or a modeling note), and a **tag**: **[Fact]**, **[Derived]**, or **[Assumption]**.
+
+> **Provenance at a glance:** for a single table classifying **every value's min, max, and default** as Asserted / Derived / Documented, see **§2.2 Provenance of every configurable value** below.
+
+Convention: `round` = round half to +∞ (JavaScript `Math.round`); $\lfloor\cdot\rceil$ denotes it. All money in USD, all credits in AICR, related by $c$.
+
+---
+
+## 1. Constants — `src/model/defaults.ts`
+
+| Symbol | Value | Code | Source | Tag |
+|--------|------:|------|--------|-----|
+| $c$ | $0.01$ USD/AICR | `defaults.ts:4` (`CREDIT_USD`) | [B1][B2] | Fact |
+| $p_B,\ p_E$ | $19,\ 39$ | `defaults.ts:7-10` (`SEAT_PRICE`) | [B3] | Fact |
+| $I_B^{std},I_E^{std}$ | $1900,\ 3900$ | `defaults.ts:13-16` (`INCLUDED`) | [B1] | Fact |
+| $I_B^{promo},I_E^{promo}$ | $3000,\ 7000$ | `defaults.ts:13-16` | [B1] | Fact |
+| $D$ | $30$ | `defaults.ts` (`SIM_DAYS`) | one calendar month | Assumption |
+
+Included-allowance selection (`includedPerSeat`, `defaults.ts:18-20`) — **[Fact]** [B1]:
+
+$$I_B = \mathrm{promo}\,?\,I_B^{promo}:I_B^{std}, \qquad I_E = \mathrm{promo}\,?\,I_E^{promo}:I_E^{std}$$
+
+---
+
+## 2. Inputs — `src/model/types.ts` (`EnterpriseInputs`), defaults in `defaults.ts:52-71`
+
+$L,\ \rho_B,\ \alpha,\ \bar u,\ n_{\text{pow}},\ B_{\text{pow}},\ v,\ B_{\text{ind}},\ \beta_E,\ \mathrm{promo},\ \mathrm{exCC},\ \mathrm{stop}_E,\ \mathrm{seed}$, and a list of cost centers $\{cc\}$. Defaults: $L{=}100,\ \rho_B{=}0.7,\ \alpha{=}0.8,\ \bar u{=}5000,\ n_{\text{pow}}{=}10,\ B_{\text{pow}}{=}\$190,\ v{=}0.3,\ B_{\text{ind}}{=}50,\ \beta_E{=}\$2{,}620,\ \mathrm{promo}{=}\text{false},\ \mathrm{exCC}{=}\text{false},\ \mathrm{stop}_E{=}\text{true}$. Here $\beta_E$ is the enterprise metered budget in **USD** (§5.2); $n_{\text{pow}}$ is the number of power users and $B_{\text{pow}}$ their individual budget (§2.1); $\mathrm{exCC}$ is the enterprise-budget "exclude cost-center usage" flag (§6c). The engine assumes the "AI credit paid usage" policy is enabled (§5.7 of `billing-model.md`).
+
+Each cost center $cc$ carries: `members` $s_{cc}$, its own average developer usage $\bar u_{cc}$ (credits; §4), per-user limit (inherit or own $B^{user}_{cc}$), metered budget (absolute USD $\beta_{cc}$, §5.3), `stopUsageBudget` $\mathrm{stop}_{cc}$, and `includedCapEnabled` (AI credit pool cap on/off — the API's only cost-center pool parameter, `ai_credit_pool_enabled`; there is **no** per-CC block/overage field). Cost centers **always** use the enterprise Business/Enterprise ratio $\rho_B$ (no per-CC plan mix). The shipped default has two predefined cost centers — a **High usage** CC (30 seats, $\bar u_{cc}=2\bar u$) and a **Low usage** CC (the remaining 70 seats, $\bar u_{cc}=\tfrac12\bar u$).
+
+> **Design invariant (governance vs. what-if).** Every input that changes the *simulated outcome* is exactly one of two kinds: **(1) a behavioral / sizing what-if assumption** the analyst makes about their own org — total users, plan mix, active %, usage level $\bar u$ and variation $v$, power-user count $n_{\text{pow}}$ — which has **no** GitHub setting and is tagged **[Assumption]**; or **(2) a governance control** — the universal / cost-center / individual **user-level budgets**, the **cost-center and enterprise metered budgets**, their **"stop usage"** flags, the cost-center **included-usage cap** (AI credit pool, on/off), and the enterprise-budget **"exclude cost-center usage"** flag — each of which **must** correspond to a real GitHub governance control exposed in the **UI or REST API** and is cited with a `[Bn]` tag. No knob that affects spend or blocking may model a mechanism GitHub does not actually offer; the provenance table below and §5–§6 enforce this by tagging every governance control **Doc [Bn]** and every assumption **A**.
+
+### 2.1 Universal ULB & power-user budget — `defaults.ts` (`DEFAULT_UNIVERSAL_ULB_USD`, `UNIVERSAL_ULB_MAX_MULTIPLE`, `DEFAULT_POWER_USER_BUDGET_USD`, `POWER_USER_BUDGET_MIN/MAX_USD`), UI in `GlobalControls.tsx`; validated in `engine.test.ts`  **[Assumption]**
+
+**Universal user-level budget (ULB)** $B_{\text{ind}}$ — the per-user limit for **normal** users — is derived from the average developer monthly usage $\bar u$ (credits), converted to USD via $c$:
+$$B_{\text{ind}}^{\text{default}} = \bar u \cdot c, \qquad B_{\text{ind}}^{\max} = 10\,(\bar u \cdot c)$$
+- **Default** (initial value / on reset) uses the default $\bar u$: $5000\cdot\$0.01=\$50$.
+- **Slider max** tracks the **current** avg-usage slider live: $10\times(\bar u\cdot c)$; at defaults $=\$500$. If $\bar u$ is lowered below the current value, the UI keeps it in range so the thumb stays usable (§9).
+
+**Power-user individual budget** $B_{\text{pow}}$ = `avgPowerUserBudget` — a power user's modeled consumption **and** their per-user limit, overriding the ULB [B16]. Bounds/default are multiples of the Copilot Business seat price $p_B=\$19$:
+$$B_{\text{pow}}^{\min}=2p_B=\$38,\qquad B_{\text{pow}}^{\max}=40p_B=\$760,\qquad B_{\text{pow}}^{\text{default}}=10p_B=\$190$$
+The **number of power users** is an absolute count on $[0,\ L]$ (max = total users, dynamic), default $\lfloor 0.1\,L\rceil = 10$; the power-user share is $\phi=\text{powerUsers}/L$ (§4).
+
+GitHub has no formula for a per-user budget *amount*; it documents *that* you set higher individual overrides for power users [B16] and that user-level budgets hard-stop total consumption [B4]. The specific amounts here are modeling choices.
+
+### 2.2 Provenance of every configurable value — min · max · default
+
+Explicit classification of **every** value's bounds and default. **Kind:** **A** = *Asserted* (a fixed design choice/assumption — no formula, no GitHub source); **Calc** = *Derived/Calculated* (formula in the Basis column, cross-referenced to §2.1 / §5.2 / §9); **Doc** = set by *official GitHub documentation* (source `[Bn]`, see [`references.md`](./references.md)). These correspond to the doc-wide tags **[Assumption] / [Derived] / [Fact]** respectively. *A(frac)* = an asserted logical bound of a fraction $[0,1]$. A dash (—) = the bound does not apply (booleans / constants). Values shown at the shipped defaults; $c=\$0.01$.
+
+**Global inputs** — `defaults.ts` (`RANGES`, `DEFAULT_INPUTS`)
+
+| Parameter | Min | Max | Default | Basis (formula / rationale / source) |
+|---|---|---|---|---|
+| Total users with licenses | 1 · **A** | 1,000 · **A** | 100 · **A** | UX cap; GitHub sets no seat maximum |
+| Business share $\rho_B$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.70 · **A** | assumed 70/30 Business:Enterprise mix |
+| Active % $\alpha$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.80 · **A** | assumed 80% of seats active |
+| Avg dev usage $\bar u$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | 5,000 cr ($50) · **A** | min = one Business seat's included credits [B1]; max $=10\times$ min (10× is **A**, base [B1]); default chosen (doubled from 2,500 on request) |
+| Number of power users | 0 · **A** | $L$ (total users) · **Calc** | $\lfloor 0.1L\rceil$ = 10 · **A** | §2.1: max = total users (dynamic); default = 10% of total users |
+| Average power-user budget $B_{\text{pow}}$ | $38 = 2p_B · **Calc** | $760 = 40p_B · **Calc** | $190 = 10p_B · **Calc** | §2.1: multiples of the Business seat price $p_B=\$19$ [B3] (the 2×/40×/10× multiples are **A**); overrides the ULB [B16] |
+| Usage variation $v$ | 0 · **A(frac)** | 1 · **A(frac)** | 0.30 · **A** | CV bound $[0,1]$ chosen; moderate default |
+| Universal ULB $B_{\text{ind}}$ | $0 · **A** | $10(\bar u c)$ = $500 · **Calc** | $\bar u c$ = $50 · **Calc** | §2.1: default $=\bar u\cdot c$; max $=10\,\bar u\cdot c$ (live); 10× is **A**, $c$ [B1]. $0 blocks the user ([B4]) |
+| Enterprise limit $\beta_E$ | $0 · **A** | $\$256\cdot L$ = $25,600 @ L=100 · **Calc** | $\text{metered}_{\text{ref}}$ = $2,620 · **Calc** | §5.2: default = expected metered at defaults ($v{=}0$); **max scales with total users** ($\$256\times L$; recomputed only when total users changes) |
+| Promo allowances | — | — | false · **A** | default shows standard allowances; the values it selects (1,900/3,900 ↔ 3,000/7,000) are **Doc** [B1] |
+| AI credit paid usage | — | — | (assumed on) | **not a control**; the engine assumes the enterprise "AI credit paid usage" policy is enabled (§5.7 billing-model). **Doc** it exists [B1][B4] |
+| Exclude CC usage $\mathrm{exCC}$ | — | — | false · **A** | enterprise-budget flag (§6c): when true, the enterprise budget caps only non-CC usage and CCs spend under their own budgets on top. Default off matches GitHub (existing budgets include CC usage). **Doc** the control exists [B18] |
+| Stop usage (budgets) | — | — | true · **A** | models hard caps; **deliberately diverges** from GitHub's real default (OFF) [B6] |
+| Seed | — | — | 12345 · **A** | arbitrary; makes sampling deterministic |
+
+**Cost-center inputs** — `defaults.ts` (`makeDefaultCostCenter`, `RANGES`), UI in `CostCenterCard.tsx`
+
+| Parameter | Min | Max | Default | Basis (formula / rationale / source) |
+|---|---|---|---|---|
+| CC members (seats) | 0 · **A** | $\min(1000,\ L-\!\sum_{\text{other CC}})$ · **Calc + Doc** | 30 (High) / 70 (Low) · **A** | a seat belongs to one cost center ⇒ $\sum$ members $\le L$ [B10]; 1,000 cap is **A**; live (§9); default clamps to remaining seats on add. Two predefined CCs seed the default (High usage 30, Low usage = the rest) |
+| CC avg developer usage $\bar u_{cc}$ | 1,900 cr · **Doc** | 19,000 cr · **Calc** | High 10,000 (2×), Low 2,500 (½×), added 5,000 · **A** | same bounds as the enterprise avg usage (§2.2 global); each cost center has its **own** average; the two predefined CCs seed a high/low split (2× and ½× the enterprise default). Cost centers **always** use the enterprise Business/Enterprise ratio — there is no per-CC plan mix |
+| CC per-user limit (own) | $0 · **A** | $500 · **A** | $50 · **A** | fixed range — **not** derived from $\bar u$ (unlike $B_{\text{ind}}$); default CC inherits $B_{\text{ind}}$ instead |
+| CC metered budget $\beta_{cc}$ | $0 · **A** | $\$256\cdot s_{cc}$ · **Calc** | $\$26.20\cdot s_{cc}$ ($786 @ 30 seats) · **Calc** | §5.3: **same per-seat logic as the enterprise limit** (§5.2), scaled by the CC's seats $s_{cc}$: default $=\tfrac{\$2{,}620}{100}s_{cc}$, max $=\$256\,s_{cc}$ (recomputed only when the CC's seats change). Budgets cap metered [B5] |
+| CC included-usage cap ("AI credit pool") | — | — | off · **A** | single boolean `ai_credit_pool_enabled`; when on, the cap **amount** is auto-sized to the CC's own licenses' credits and the excess spills to metered. **No** per-CC block/overage field — what happens at the cap is the enterprise overages policy — **Doc** [B13][B10] |
+| CC stop usage | — | — | true · **A** | models hard caps |
+
+**Constants** — `defaults.ts` (see §1)
+
+| Constant | Value | Kind | Source |
+|---|---|---|---|
+| Credit rate $c$ | $0.01 / AICR | **Doc** | 1 AI credit = $0.01 [B1][B2] |
+| Seat price $p_B / p_E$ | $19 / $39 | **Doc** | [B3] |
+| Included $I_B / I_E$ (standard) | 1,900 / 3,900 | **Doc** | [B1] |
+| Included (promo → Sep 1 2026) | 3,000 / 7,000 | **Doc** | [B1] |
+| Simulated month $D$ | 30 days | **A** | one calendar month |
+
+---
+
+## 3. Group construction — `makeGroup`, `engine.ts:57-84`
+
+A **group** $g$ is one cost center or the single "unassigned" group. Groups are built at `engine.ts:95-132`. For seats $s_g$ and Business share $\rho_g$:
+
+$$
+\begin{aligned}
+s_g &= \max(0,\ \lfloor \text{members}\rceil) & &\text{[Assumption: members = assigned seats]}\\
+b_g &= \lfloor s_g\,\rho_g \rceil,\qquad e_g = s_g - b_g & &\text{business / enterprise seats}\\
+C_g &= b_g\,I_B + e_g\,I_E & &\text{included credits (carveout) — [Fact] [B1]}\\
+V_g &= b_g\,p_B + e_g\,p_E & &\text{license value (USD) — [Fact] [B3]}\\
+A_g &= \lfloor s_g\,\alpha \rceil & &\text{active users — [Assumption]}\\
+U_g &= B^{user}_g / c & &\text{per-user limit in credits — [Fact] [B4]}\\
+\beta_g &= \begin{cases}\text{budgetUsd}_{cc} & g\ \text{is a cost center}\\ \text{null} & g = \text{unassigned}\end{cases} & &\text{CC metered budget — absolute USD (§5.3); [Fact that CC budgets cap metered [B5]]}
+\end{aligned}
+$$
+
+**Inheritance** (`engine.ts:104,109`) — **[Fact: these controls exist [B4][B5]]**:
+$$\rho_g=\rho_B\ \text{(always — no per-CC plan mix)},\qquad B^{user}_g=\text{inherit}?\ B_{\text{ind}}:B^{user}_{cc}$$
+Every group uses the enterprise Business/Enterprise ratio $\rho_B$. The CC metered budget $\beta_g$ is **always an explicit absolute USD value** ($\text{budgetUsd}_{cc}$), taken directly from the CC slider — not inherited and not a multiple of license value; its default and slider max scale with the CC's own seats (§5.3). **[Assumption of parametrization]**
+
+**Unassigned group** (`engine.ts:116-132`): $s_U=\max(0,\ L-\sum_{cc}s_{cc})$, business share $\rho_B$, $U_U=B_{\text{ind}}/c$, never capped, $\beta_U=\text{null}$. **[Fact: seats not in a cost center bill to the enterprise [B11]]**
+
+---
+
+## 4. Per-user usage model — `engine.ts:148-167`  **[Assumption]**
+
+> No GitHub formula exists for how much an individual consumes; §4 is the simulator's statistical model. GitHub only states qualitatively that heavier/agentic use costs more credits [B1]. Safe to tune.
+
+Power users are the first $\lfloor A_g\,\phi \rceil$ active users of each group, where $\phi = \text{powerUsers}/L$ is the power-user share of all licensed users (`engine.ts:150`). Each user has a monthly **target** $\tau_i$ and a per-user **limit** $U_i$ (`engine.ts:151-165`):
+
+$$(\tau_i,\ U_i) = \begin{cases} (B_{\text{pow}},\ B_{\text{pow}}) & \text{power user — individual budget override (§2.1) [B16]}\\ (\bar u_g,\ U_g) & \text{normal user — target is the group's avg usage; limit is its universal/CC ULB}\end{cases}$$
+
+where $B_{\text{pow}} = \text{avgPowerUserBudget}/c$ (credits) and $\bar u_g$ is the group's average developer usage — the enterprise $\bar u$ for the unassigned group, or the cost center's own $\bar u_{cc}$ (§2.2). A power user is modeled to consume at their individual budget, which **also caps them**, overriding the universal/CC ULB (GitHub's power-user override guidance [B16]).
+
+Monthly draw (`engine.ts:156`) and daily allocation (`engine.ts:157-164`):
+$$\mu_i \sim \mathrm{LogNormal}(\text{mean}=\tau_i,\ \mathrm{CV}=v), \qquad
+x_{i,d} = \mu_i\,\frac{w_{i,d}}{\sum_{d'=1}^{D} w_{i,d'}},\quad w_{i,d}\sim \mathrm{LogNormal}(\text{mean}=1,\ \mathrm{CV}=v)$$
+
+By construction $\sum_{d=1}^{D} x_{i,d} = \mu_i$ (a user's daily shares sum to its monthly draw). If $v=0$, $\mu_i=\tau_i$ and $x_{i,d}=\tau_i/D$ (uniform). Because a power user's target equals their limit, at $v=0$ they consume exactly their budget and are **not** blocked *by their own limit*; only variation ($v>0$) pushes some above their budget. Note this is only the user-level limit — a binding cost-center or enterprise **metered-budget stop** can still block a user at $v=0$ (see §6d).
+
+### 4.1 Log-normal parametrization — `src/model/rng.ts:29-34`  **[Assumption]**
+For target arithmetic mean $\mu_X$ and coefficient of variation $v$:
+$$\sigma^2=\ln(1+v^2),\quad \mu=\ln(\mu_X)-\tfrac{\sigma^2}{2},\quad X=\exp(\mu+\sigma Z),\ Z\sim N(0,1)$$
+This choice guarantees $\mathbb E[X]=\mu_X$ and $\mathrm{sd}(X)/\mathbb E[X]=v$. $Z$ via Box–Muller (`rng.ts:17-23`): $Z=\sqrt{-2\ln U_1}\cos(2\pi U_2)$; $U_1,U_2$ from a seeded **mulberry32** generator (`rng.ts:5-14`) → **deterministic** given `seed`.
+
+---
+
+## 5. Enterprise aggregates — `engine.ts:135-145`
+
+$$
+\begin{aligned}
+B=\textstyle\sum_g b_g,\quad E=\textstyle\sum_g e_g & & \text{total seats by plan}\\
+F &= B\,p_B + E\,p_E & &\text{license fees — [Fact] [B3]}\\
+P &= \textstyle\sum_g C_g & &\text{total included pool — [Fact] [B1]}\\
+\beta_E &= \text{enterpriseLimitUsd} & &\text{enterprise metered budget (absolute USD) — [Assumption]}\\
+M &= F + \beta_E + \big(\mathrm{exCC}\ ?\ \textstyle\sum_{cc}\beta_{cc}:0\big) & &\text{max possible bill — [Fact] [B5][B18]}\\
+A &= \textstyle\sum_g A_g & &\text{active users}
+\end{aligned}
+$$
+
+**[Derived]** $P\cdot c = F$ (pool dollar value equals license fees), since $I_B c=p_B,\ I_E c=p_E$. [B1]
+
+### 5.1 Pool partition — `engine.ts:143-145`  **[Fact]** [B10]
+$$P_{\text{shared}}=\sum_{g:\ \neg\text{capped}} C_g, \qquad \text{sub}_g = C_g\ \ \text{for each capped cost center}$$
+Capped cost centers draw from their own $\text{sub}_g$; everyone else shares $P_{\text{shared}}$. Enabling a cap carves that CC's credits out of the shared pool but does not redistribute the rest. [B10]
+
+### 5.2 Default & maximum of the enterprise limit — `defaults.ts` (`DEFAULT_ENTERPRISE_LIMIT_USD`, `ENTERPRISE_LIMIT_MAX_USD`); validated in `engine.test.ts`  **[Assumption]**
+
+The enterprise limit is an absolute USD budget on the slider range $[0,\ \beta_E^{\max}(L)]$. The **default** is derived from a **reference run of the shipped default inputs at $v=0$** (no usage variation), budgets non-binding:
+$$U_{\text{ref}}=\sum_{i\in\text{active}}\min(\tau_i,\ U_i)\cdot c,\qquad \text{metered}_{\text{ref}}=\max\big(0,\ U_{\text{ref}}-P\cdot c\big),\qquad \boxed{\ \beta_E^{\text{default}}=\text{metered}_{\text{ref}}\ }$$
+At the shipped defaults ($v=0$): **72 normal** users consume \$50 each (target \$50 = universal ULB) and **8 power** users consume \$190 each (their individual budget), so $U_{\text{ref}}=72(\$50)+8(\$190)=\$5{,}120$. The \$2,500 pool ($P\cdot c$) is exceeded, so $\text{metered}_{\text{ref}}=\$2{,}620$ ⇒ **default $=\$2{,}620$**.
+
+**Slider max (dynamic):** to give larger orgs enough range, the max **scales linearly with total users** $L$:
+$$\boxed{\ \beta_E^{\max}(L)=\text{ENTERPRISE\_LIMIT\_MAX\_USD}\times\tfrac{L}{100}=\$256\times L\ }$$
+`ENTERPRISE_LIMIT_MAX_USD` $=\$25{,}600$ is the max at the default $L=100$ (equivalently $5\times U_{\text{ref}}=5\times\$5{,}120$). As a pure function of $L$, the max **recomputes only when "Total users with licenses" changes**; the default and any user-set value are untouched (kept in range if $L$ is lowered, like §9). Budgets cap metered charges on top of license fees [B5]; the "5×" base and "\$256/user" scale are modeling choices. (`enterpriseLimitMaxUsd` and the $v=0$ reference are checked in `engine.test.ts`.)
+
+### 5.3 Default & maximum of a cost-center budget — `defaults.ts` (`CC_BUDGET_DEFAULT_PER_SEAT_USD`, `ccBudgetDefaultUsd`, `ccBudgetMaxUsd`); validated in `engine.test.ts`  **[Assumption]**
+
+A cost center's metered budget $\beta_{cc}$ is an absolute USD value on the slider range $[0,\ \beta_{cc}^{\max}(s_{cc})]$ — **the same construction as the enterprise limit (§5.2), but scaled by the cost center's own seats $s_{cc}$ instead of total users $L$.** Both bounds are the enterprise per-seat rates multiplied by the CC's seats:
+$$
+\boxed{\ \beta_{cc}^{\text{default}}(s_{cc})=\underbrace{\tfrac{\text{DEFAULT\_ENTERPRISE\_LIMIT\_USD}}{100}}_{=\,\$26.20\ \text{/seat}}\times s_{cc},\qquad
+\beta_{cc}^{\max}(s_{cc})=\underbrace{\text{ENTERPRISE\_LIMIT\_MAX\_PER\_LICENSE\_USD}}_{=\,\$256\ \text{/seat}}\times s_{cc}\ }
+$$
+
+- **Per-seat default \$26.20** is the enterprise default (\$2,620, the expected metered spend at defaults, §5.2) spread over its 100 licenses — so a CC that were sized like the whole default enterprise ($s_{cc}=100$) would default to \$2,620. A fresh **30-seat** cost center therefore defaults to $\$26.20\times30=\boxed{\$786}$.
+- **Per-seat max \$256** reuses `ENTERPRISE_LIMIT_MAX_PER_LICENSE_USD` (so $s_{cc}=100\Rightarrow\$25{,}600$, matching the enterprise max at $L=100$).
+- **Min \$0**, identical to the enterprise limit; \$0 with `stopUsageBudget` on hard-stops the CC at its included pool.
+
+As a pure function of $s_{cc}$, `ccBudgetMaxUsd` **recomputes only when the CC's seats change**; the current/user-set value is untouched (kept in range in the UI via `max(ccBudgetMaxUsd(sₒcc), value)`), exactly like the enterprise max. On creating a cost center the default is scaled to its actual (clamped) seats (`store.ts` `addCostCenter`). The CC budget caps that CC's metered charges inside `ApplyMetered` (§6c); the per-seat rates are inherited modeling choices from §5.2.
+
+---
+
+## 6. Daily accounting loop — `engine.ts:195-255`
+
+State: $P_{\text{shared}}$, each $\text{sub}_g$, per-group metered $\mathrm{Me}_g$ (USD) and included $\mathrm{In}_g$ (USD), enterprise metered $\mathrm{Me}_E$, and per-user cumulative credits $\mathrm{cum}_i$ (all start 0). For each day $d=1..D$, for each **unblocked** active user $i$ in group $g$:
+
+**(a) User-level limit room (hard stop)** — `engine.ts:196-205` — **[Fact]** [B4]
+Each user $i$ has a per-user limit $U_i$ (§4: normal → the group ULB $U_g$; power → their individual budget $B_{\text{pow}}$, which overrides the ULB [B16]). With remaining room $r_i = U_i - \mathrm{cum}_i$: if $r_i \le 0$ the user has already reached their limit and is **blocked** for the rest of the month (skipped). Otherwise the day's servable amount is capped at the room, $\sigma_{i,d}=\min(x_{i,d},\, r_i)$. Whether the user is *counted* blocked is decided at commit time in (d).
+
+**(b) Included then metered routing** — `engine.ts:207-226` — **[Fact]** [B1][B10][B13]
+
+Capped group (AI credit pool cap on) — draws included credits only from its own sub-pool, then the leftover **always** spills to metered (overages assumed enabled; there is no per-CC block mode):
+$$\mathrm{inc}=\min(\sigma_{i,d},\ \text{sub}_g),\quad \text{sub}_g\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc};\qquad \text{metered credits}=\textsc{ApplyMetered}(g,\ell)$$
+
+Non-capped group (shared pool):
+$$\mathrm{inc}=\min(\sigma_{i,d},\ P_{\text{shared}}),\quad P_{\text{shared}}\mathrel{-}=\mathrm{inc};\qquad \ell=\sigma_{i,d}-\mathrm{inc};\qquad \text{metered credits}=\textsc{ApplyMetered}(g,\ell)$$
+
+**(c) `ApplyMetered(g, credits)`** — `engine.ts:183-201` — **[Fact]** [B4][B5][B18]
+$$
+\begin{aligned}
+a &= \text{credits}\cdot c && \text{(requested USD)}\\
+\text{if } \beta_g\neq\text{null} \wedge \mathrm{stop}_g:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_g-\mathrm{Me}_g)\big) && \text{CC budget cap}\\
+\text{let } \kappa_g &= \neg\,\mathrm{exCC}\ \vee\ \text{kind}(g)\neq\text{cc} && \text{does $g$ count toward the enterprise budget?}\\
+\text{if } \mathrm{stop}_E \wedge \kappa_g:\ & a \leftarrow \min\!\big(a,\ \max(0,\ \beta_E-\mathrm{Me}_E)\big) && \text{enterprise budget cap}\\
+& \mathrm{Me}_g\mathrel{+}=a;\quad \text{if } \kappa_g:\ \mathrm{Me}_E\mathrel{+}=a && \text{commit}\\
+& \textbf{return } a/c && \text{(metered credits actually billed)}
+\end{aligned}
+$$
+$\mathrm{exCC}$ is the enterprise **"exclude cost-center usage"** flag (§5.6 of `billing-model.md`): when on, cost-center groups ($\text{kind}=\text{cc}$) **skip** the enterprise-budget cap and do **not** accrue against $\mathrm{Me}_E$, so the enterprise budget bounds only non-cost-center usage while each CC is bounded solely by its own $\beta_g$. [B18] The nested `min` implements **"lowest remaining headroom wins"** across the CC and enterprise budgets. [B4] When a `stop` flag is false, that cap term is skipped, so charges accrue uncapped (alerts-only behavior). [B6] The simulator assumes the enterprise/org "AI credit paid usage" policy is **enabled** (metered usage always allowed; §5.7 of `billing-model.md`). [B1]
+
+**(d) Commit user & blocked determination** — `engine.ts:228-240` — **[Fact]** [B4][B16]
+$$\text{spent}=\mathrm{inc}+\text{metered credits};\quad \mathrm{cum}_i\mathrel{+}=\text{spent};\quad \mathrm{In}_g\mathrel{+}=\mathrm{inc}\cdot c$$
+User $i$ is counted **blocked** for the month iff a hard stop prevented them from consuming their intended usage $x_{i,d}$ that day:
+$$\text{spent} < x_{i,d}-\varepsilon\ \ (\varepsilon=10^{-9})\ \Rightarrow\ \text{block }i$$
+This single condition unifies **every** hard stop the model supports — it is not just the user-level limit:
+
+- **User limit (ULB / power-user override):** room ran out, so $\sigma_{i,d}=r_i<x_{i,d}$ and hence $\text{spent}\le\sigma_{i,d}<x_{i,d}$. Equivalently $\mu_i>U_i$ over the month. [B4][B16]
+- **Metered-budget stop (cost-center or enterprise, when its stop flag is on):** once the budget is exhausted `ApplyMetered` serves less than requested, so $\text{spent}<x_{i,d}$. [B4][B6]
+
+(The AI credit pool cap itself does **not** block: its leftover always spills to metered, since overages are assumed enabled — §6b.) Being served in full ($\text{spent}=x_{i,d}$, i.e. reaching a limit *exactly*) is **not** blocked. When no stop flag is on and no budget binds, only the user limit can block, so this matches the earlier user-limit-only behaviour; turning on a metered-budget stop that binds now correctly counts the users it cuts off (previously undercounted).
+
+Evaluation order across a request follows GitHub's documented order [B4] (*"How billing flows through budgets"*): **user-level budget → shared pool → cost-center budget → enterprise budget**. The applicable user-level budget is the **most specific**: an **individual (power-user) budget overrides the cost-center ULB, which overrides the universal ULB**, and user-level budgets **always hard-stop**. Cost-center/enterprise budgets act only in the metered phase and block only when their "stop usage" flag is on. (GitHub also has an organization-scoped budget between the CC and enterprise scopes; the app does not model it.)
+
+---
+
+## 7. Outputs — `SimResult`
+
+### 7.1 Per-day snapshots
+Per group (`engine.ts:246-256`): for day $d$
+$$\text{poolRemaining}=\begin{cases}\text{sub}_g & \text{capped}\\ \text{NaN} & \text{shares the pool}\end{cases},\quad \text{included}=\mathrm{In}_g,\ \text{metered}=\mathrm{Me}_g,\ \text{bill}=V_g+\mathrm{Me}_g$$
+Enterprise (`engine.ts:258-267`):
+$$\text{poolRemaining}=P_{\text{shared}}+\sum_{g:\text{capped}}\text{sub}_g,\quad \text{included}=\mathrm{In}_{\text{tot}},\ \text{metered}=\mathrm{Me}_{\text{tot}},\ \text{bill}=F+\mathrm{Me}_{\text{tot}}$$
+`blockedUsers` = count of blocked users at end of day $d$ (set at `engine.ts:240`; counted at `247,258`).
+
+### 7.2 Scalars — `engine.ts:270-302`
+$$\text{poolExhaustedDay}=\min\{d: P_{\text{shared}}\le 0\}\ \text{or null (never)}\ \ (\text{engine.ts:243})$$
+$$\text{poolUsedPct}=\min\!\Big(1,\ \frac{\mathrm{In}_{\text{tot}}}{P\cdot c}\Big)\ \ (\text{engine.ts:288})$$
+Month-end values (`engine.ts:347-351`, read from day $D$'s snapshot): $\text{monthEndBill}=F+\mathrm{Me}_{\text{tot}}$, $\text{monthEndMetered}=\mathrm{Me}_{\text{tot}}$, $\text{monthEndIncluded}=\mathrm{In}_{\text{tot}}$, $\text{monthEndBlocked}=\text{blocked}(D)$.
+
+---
+
+## 8. Warnings — `engine.ts:291-320`  (diagnostics; not billing formulas)
+
+1. **Over-allocation** (`ccSeatSum > L`): CC seats exceed licenses. [B10] — reduce members.
+2. **Limit below included share**: $B_{\text{ind}} < \dfrac{P\cdot c}{L}$ ⇒ users may be blocked before using their included share. [B1][B4]
+3. **Over-provisioned**: `poolExhaustedDay = null` ⇒ pool never empties; metered = $0.
+4. **Metered exceeds budget with stop off**: $\neg\mathrm{stop}_E \wedge \mathrm{Me}_{\text{tot}}>\beta_E$. [B6]
+5. **Shared-pool drain**: a non-capped CC with $\mathrm{In}_g > C_g\cdot c\cdot 1.25$ ⇒ suggest an included-usage cap. [B10]
+
+---
+
+## 9. UI-level constraints (real-time validation)
+
+Enforce **[Fact]** [B10] "a seat belongs to only one cost center ⇒ Σ members ≤ L":
+
+- **Members slider max** — `CostCenterCard.tsx` (`membersMax`):
+$$\text{available}=\max\!\big(0,\ L-\!\!\sum_{c\neq g} s_c\big),\qquad \text{membersMax}=\min\!\big(\text{RANGES.ccMembers.max},\ \max(\text{available},\ s_g)\big)$$
+Keeping $s_g$ in the `max` lets the thumb stay usable if $L$ was lowered below the current sum (value can only decrease).
+- **Add-cost-center clamp** — `state/store.ts` (`addCostCenter`): new CC `members = min(default, max(0, L − Σ members))`; the "Add" button is disabled when no seats remain (`CostCenterList.tsx`).
+- **Assignment summary** — `CostCenterList.tsx`: shows $\sum_{cc}s_{cc}$ / $L$ assigned and $\max(0, L-\sum s_{cc})$ unassigned (red if over).
+
+---
+
+## 10. Known simplifications (vs. GitHub reality)
+
+| # | Simplification | Reality / doc |
+|---|----------------|---------------|
+| S1 | Usage entered directly in credits; no token model | Credits derive from per-token model pricing [B2] (see `billing-model.md` §7.1) |
+| S2 | Auto-select −10% and data-residency +10% not applied | Documented multipliers [B14][B15] (`billing-model.md` §7.2–7.3) |
+| S3 | `members` = seats; `activePct` applied uniformly per group | GitHub attributes by actual user/seat membership [B11] |
+| S4 | If $\sum_{cc}s_{cc}>L$, pool is computed from CC seats (over-count) until corrected; a warning fires | A resource belongs to one CC; Σ ≤ L [B10] |
+| S5 | Boundary-day attribution of shared included vs. metered is user-iteration-order dependent; **enterprise totals are order-independent** | GitHub attributes per actual event time |
+| S6 | Copilot code review also consumes Actions minutes; not modeled | [B2] |
+
+
+
+==============================================================================
+# Calculation documentation — billing model  (source: docs/billing-model.md)
+
+==============================================================================
+
+# GitHub Copilot Billing Model (as implemented)
+
+The rules below are the **GitHub-documented facts** the simulator relies on. Each is cited. This reflects the **usage-based billing** model that took effect **June 1, 2026** for Copilot Business and Copilot Enterprise. Figures verified 2026-07.
+
+## 1. Billing components
+
+Total spend has three parts; the simulator treats them separately:
+
+```
+total bill = license fees (fixed)  +  metered usage (variable, after the included pool drains)
+```
+
+- **License fees** are fixed per seat and are **never capped by a budget** (budgets only alert on license products). [B1][B7]
+- **Included usage** is a monthly allowance of AI credits bundled with each seat, **pooled at the enterprise level**. [B1]
+- **Metered usage** is pay-as-you-go, billed only after the shared pool is exhausted. [B1]
+
+## 2. The AI credit (AICR)
+
+- **1 AI credit = $0.01 USD**, fixed. [B1][B2]
+- Copilot usage is measured in AI credits; **code completions and next-edit suggestions are not billed** and are excluded from the model. [B1][B2]
+
+## 3. Seat prices and included allowances
+
+| Plan | Price $p$ (USD/seat/mo) | Included $I$ (AICR/seat/mo), standard | Promo (Jun 1 – Sep 1 2026) |
+|------|------------------------:|--------------------------------------:|---------------------------:|
+| Copilot Business | **19** | **1,900** | **3,000** |
+| Copilot Enterprise | **39** | **3,900** | **7,000** |
+
+Sources: prices [B3], included allowances and promo window [B1]. Note the **[Derived]** identity $I_B\cdot c = p_B$ (1,900 × $0.01 = $19) and $I_E\cdot c = p_E$: **a seat's included-credit dollar value equals its license fee**. [B1]
+
+## 4. Pooling and reset
+
+- A seat's included credits are **pooled at the billing-entity (enterprise) level**; e.g. 100 Business seats → one shared pool of 190,000 AICR. [B1]
+- The pool **resets monthly** (00:00 UTC on the 1st) and **does not roll over**. [B1] The simulator models exactly one month of `D = 30` days.
+
+## 5. Budgets and limits
+
+### 5.1 Budget scopes
+Budgets exist at **enterprise**, **organization**, **repository**, **cost center**, and **user** scopes; the user scope has three variants (universal, cost-center, individual). [B4][B9] The simulator implements the enterprise budget, the cost-center budget, and per-user limits (universal + cost-center override).
+
+### 5.2 What a budget caps
+- **Enterprise / organization / cost-center budgets cap *metered* charges only** (after the pool drains); they do **not** limit use of the included pool. [B4][B5]
+- **User-level budgets cap a person's *total* consumption (pool + metered)** and **always hard-stop**. [B4][B9]
+
+### 5.3 Enterprise budget is additive (max-bill rule)
+> "The enterprise budget is not a total monthly budget… Your total maximum bill is your license fees plus the enterprise budget." Example: 400 Business licenses ($7,600) + a $5,000 budget ⇒ **$12,600** max, not $5,000. [B5]
+
+### 5.4 Stop-usage default
+- "Stop usage when budget limit is reached" applies to enterprise/org/cost-center budgets and is **OFF by default** (alerts only; charges continue). [B6][B4]
+- User-level budgets **always** hard-stop (no toggle). [B4]
+
+### 5.5 Evaluation order
+Per request: **user-level budget → shared pool → cost-center budget → organization budget → enterprise budget**, and the budget with the **least remaining headroom blocks first**. [B4][B5]
+
+### 5.6 Enterprise budget scope — exclude cost-center usage  **[Fact — modeled]**
+- An **enterprise-scoped** budget can be configured to **exclude cost-center usage**. When enabled, the enterprise budget governs **only** usage that is **not** attributed to a cost center ("Enterprise Only" usage); each cost center's metered spend is then bounded **solely by its own cost-center budget**, on top of the enterprise budget. [B18]
+- This is a **single enterprise-level setting on the enterprise budget** — **not** a per-cost-center control. It excludes **all** cost-center usage collectively; you cannot exclude individual cost centers selectively. Existing enterprise budgets **include** cost-center usage by **default**; the exclusion is opt-in. Available via the REST API, changes are audit-logged. [B18]
+- Effect on the max-bill rule (§5.3): with exclusion on, the worst-case bill becomes **license fees + enterprise budget + Σ(cost-center budgets)** — cost centers add their budgets on top of the enterprise budget instead of being capped within it.
+- **Modeled** as the `enterpriseBudgetExcludesCostCenters` input (UI toggle "Enterprise budget excludes cost-center usage"; default off). In `engine.ts` `ApplyMetered`, cost-center groups then skip the enterprise-budget cap and do not accrue against it; only non-cost-center groups do.
+
+### 5.7 AI credit paid usage policy (assumed enabled)  **[Assumption]**
+The enterprise/org **"AI credit paid usage"** policy globally governs whether **any** metered usage is allowed once the pool is exhausted (if off, all post-pool usage blocks). [B1][B4] It is a **global** gate, **not** a cost-center control. The simulator **assumes it is enabled** (metered usage always occurs, then bounded by budgets) and does **not** expose it as a control; hard stops are modeled via budget "stop usage" flags. [B17]
+
+## 6. Cost centers
+
+- A cost center attributes usage to a business unit; it can contain users, enterprise teams, orgs, repos. [B10][B11]
+- **A resource (seat) belongs to only one cost center at a time** — therefore the sum of cost-center members cannot exceed total licenses. [B10] *(This is the rule enforced by the members-slider caps.)*
+- **Cost-center budget** caps that CC's metered charges. [B5]
+- **Cost-center per-user budget** (`multi_user_cost_center`) sets one per-user amount for all members; caps total (pool+metered); **API-only today**. [B12][B9][B4]
+- **Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`)** is a single **on/off boolean** on the cost center — the only cost-center pool parameter the API exposes. It caps a CC's draw from the shared included pool to the credits **its own licenses fund** — GitHub **auto-computes** this amount (Business 3,000 / Enterprise 7,000 AI credits per license; the admin enters no number). **API-only today** (settings-UI "Early July"). [B13][B8][B10]
+- **There is no per-cost-center "block vs. overage" control.** What happens when the cap is reached is governed by the **enterprise-wide overages ("AI credit paid usage") policy**: *"If AI Credit overages are allowed, users can continue after the included pool amount is reached, subject to any other budgets… If overages are not allowed, usage stops."* [B13] The earlier reading of the changelog's "block or overage" as a per-CC toggle was incorrect — it refers to this enterprise policy.
+- The included-usage cap and the **cost-center budget** are **layered, not alternatives**: the cap governs the **pool (included)** phase, the budget governs the **metered** phase (hard-stop only if "Stop usage when budget limit is reached" is on). You can apply both to the same CC. [B4][B5]
+- Enabling an included-usage cap does **not** redistribute the shared pool; other groups keep drawing from the remaining shared pool. [B10][B13]
+
+## 7. Rules the engine intentionally does NOT implement (extension points)
+
+The app models usage in **credits directly**, not tokens, so the following documented mechanics are **out of scope today**. Documented here so a future token-level version can add them.
+
+### 7.1 Token → credit conversion  **[Fact, not implemented]**
+Cost is computed from model per-token prices (input / cached / output, plus cache-write for Anthropic), summed to USD, then converted at 1 AICR = $0.01: [B2]
+```
+USD = Σ_type (tokens_type / 1e6) × price_type(model)
+AICR = USD / 0.01
+```
+Extension point: replace the direct average-usage inputs (enterprise + per-cost-center `avgDevUsageCredits`, see `formulas.md` §4) with a token-based estimator producing per-user credits.
+
+### 7.2 Auto-model-selection discount  **[Fact, not implemented]**
+Paid plans get **−10%** on model cost when using auto model selection (× 0.90). [B14]
+
+### 7.3 Data-residency / FedRAMP surcharge  **[Fact, not implemented]**
+Requests under data-residency enforcement consume **+10%** AI credits (× 1.10). [B15]
+
+If added, apply per interaction after computing base credits: `credits × 0.90 (auto) × 1.10 (residency)`. These would multiply the per-user usage in `formulas.md` §4 before the daily accounting loop.
+
+## Citations
+
+See [`references.md`](./references.md) for the full list. Tags used above: **[B1]**–**[B15]** map to that file.
+
+
+
+==============================================================================
+# Calculation documentation — simulation engine  (source: docs/simulation-engine.md)
+
+==============================================================================
+
+# Simulation Engine — data flow & interconnections
+
+How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine is the **pure function** `runSimulation(inputs) → SimResult` in [`src/model/engine.ts`](https://github.com/webmaxru/finops-copilot/blob/a033e79/src/model/engine.ts). It is recomputed once per input change and memoized in `state/store.ts` (`useSimResult`); the timeline day only selects which precomputed snapshot to display and never triggers recomputation.
+
+## Dependency graph
+
+```mermaid
+graph TD
+  IN[Inputs: L, ρB, α, ū, φ, m, v, B_ind, βE$, promo, stopE, cost centers, seed]
+
+  IN --> INCL[Included per seat I_B,I_E — promo? §1]
+  IN --> GRP[Per-group seats: b_g,e_g,C_g,V_g,A_g,U_g,β_g — §3]
+  INCL --> GRP
+
+  GRP --> AGG[Enterprise aggregates: B,E,F,P,βE=enterpriseLimitUsd,M=F+βE,A — §5]
+  GRP --> POOL[Pool partition: P_shared, sub_g — §5.1]
+
+  IN --> USERS[User population + usage: τ_i, μ_i~LogN, daily x_id — §4]
+  GRP --> USERS
+  IN -->|seed| RNG[mulberry32 → Box–Muller → LogNormal — rng.ts]
+  RNG --> USERS
+
+  USERS --> LOOP[Daily accounting loop d=1..D — §6]
+  POOL --> LOOP
+  AGG -->|βE, stopE| LOOP
+  GRP -->|β_g, stop_g, U_g, capped| LOOP
+
+  LOOP --> SNAP[Per-day snapshots: pool left, included$, metered$, bill$, blocked — §7.1]
+  LOOP --> SCAL[Scalars: poolExhaustedDay, poolUsedPct, month-end totals — §7.2]
+  SNAP --> WARN[Warnings — §8]
+  AGG --> WARN
+  SNAP --> OUT[SimResult]
+  SCAL --> OUT
+  WARN --> OUT
+
+  OUT --> UI[UI: KPI cards, burn-down chart, per-CC chart, warnings]
+  IN -. slider caps Σ members ≤ L .-> UILIM[CostCenterCard/List, store — §9]
+```
+
+## Ordered algorithm
+
+1. **Resolve included allowances** $I_B,I_E$ from the `promo` flag (`engine.ts:88-89`).
+2. **Build groups** (`engine.ts:92-132`): one `GroupState` per cost center (applying inheritance for plan mix and per-user limit; the metered budget is an explicit absolute USD value scaled to the CC's seats, §5.3), then the **unassigned** group with $s_U=\max(0,L-\sum s_{cc})$. Each group precomputes $b_g,e_g,C_g,V_g,A_g,U_g,\beta_g$ (§3).
+3. **Aggregate to the enterprise** (`engine.ts:135-141`): $B,E,F,P,\beta_E=\text{enterpriseLimitUsd},M=F+\beta_E,A$ (§5). The default and slider max of $\beta_E$ are derived at $v=0$ (§5.2).
+4. **Partition the pool** (`engine.ts:143-145`): capped CCs get their own $\text{sub}_g=C_g$; the rest form $P_{\text{shared}}$ (§5.1).
+5. **Generate the population** (`engine.ts:148-167`): for each group, mark power users, draw each user's monthly $\mu_i$ and 30 daily shares $x_{i,d}$ from the seeded log-normal (§4).
+6. **Run the day loop** $d=1..D$ (`engine.ts:195-255`): for each unblocked user apply the **user limit → pool → metered (CC then enterprise)** cascade (§6), then push per-group and enterprise snapshots.
+7. **Assemble `SimResult`** (`engine.ts:270-302`) and compute **warnings** (§8).
+
+## Why the ordering matters (interconnections)
+
+- **Included before metered.** Every credit is first taken from the relevant pool ($\text{sub}_g$ for capped CCs, else $P_{\text{shared}}$); only the leftover $\ell$ becomes metered. This is what makes the burn-down chart show the pool draining *before* metered cost appears. [B1]
+- **User limit gates everything.** $U_g$ (a user-level budget) caps a person's **total** pool+metered use and always hard-stops, so it is checked *first* and can prevent both pool draw and metered spend. [B4]
+- **Budgets cap only the metered leg.** $\beta_g$ (CC) and $\beta_E$ (enterprise) are applied inside `ApplyMetered`, i.e. after the pool is exhausted — never limiting pool use. Their `stop` flags decide whether the cap actually blocks or merely would-alert (charges still accrue). [B4][B5][B6]
+- **Enterprise budget can exclude cost centers.** When `enterpriseBudgetExcludesCostCenters` is on, `ApplyMetered` applies $\beta_E$ (and accrues $\mathrm{Me}_E$) only for **non-cost-center** groups; each cost center is then bounded solely by its own $\beta_g$ and spends on top of $\beta_E$. This mirrors GitHub's "enterprise-scoped budget that excludes cost-center usage" (one enterprise-budget setting, not per-CC). [B18]
+- **Additivity.** Because budgets cap only metered charges, the worst-case bill is $M=F+\beta_E$ — plus $\sum_{cc}\beta_{cc}$ when the enterprise budget excludes cost centers — not $\beta_E$ alone; the max-bill rule. The engine assumes the "AI credit paid usage" policy is enabled. [B5][B18]
+- **"Blocked" means any hard stop.** A user is counted blocked for the month if a hard stop kept them from consuming what they wanted that day ($\text{spent}<x_{i,d}$) — whether from their **user limit** ($U_g$ / power-user override $B_{\text{pow}}$) or a cost-center/enterprise **metered-budget stop** whose `stop` flag is on. (An AI-credit-pool cap does not block — its excess spills to metered.) So enabling a budget stop that binds correctly shows blocked users even when nobody exceeds their own per-user limit (§6d). [B4][B6][B16]
+- **Determinism.** All randomness flows from `seed` through one `mulberry32` stream consumed in a fixed order (groups, then users, then that user's 30 daily weights), so a given input always yields identical output; "Reshuffle" changes only `seed`.
+
+## Complexity & performance
+
+One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$ inner iterations (≤ 1000 × 30 = 30k). The per-group blocked-user recount is $O(A\cdot G\cdot D)$. All well under a millisecond-scale budget; the month is computed once and cached, so scrubbing/animating the timeline is free.
+
+## Extension points
+
+- **Token-level costs** → replace the direct $\bar u$ / $\mu_i$ with a token→credit estimator (`billing-model.md` §7.1); the daily-share and accounting machinery is unaffected.
+- **Auto-select / data-residency multipliers** → scale $\mu_i$ (or per-interaction credits) by $0.90$ / $1.10$ before step 6 (`billing-model.md` §7.2–7.3).
+- **Organization-scope budgets** → add an $\text{org}$ tier in `ApplyMetered` between CC and enterprise (GitHub order is CC → org → enterprise [B4]); currently orgs are not modeled distinctly from cost centers.
+- **Multi-month / rollover** → wrap the day loop in a month loop; note GitHub pools reset monthly with no carryover [B1].
+
+
+
+==============================================================================
+# Calculation documentation — references  (source: docs/references.md)
+
+==============================================================================
+
+# References
+
+Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B18]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07 against the June 1 2026 usage-based billing model. **All `docs.github.com` links use the `enterprise-cloud@latest` version** (Copilot Business/Enterprise on GitHub Enterprise Cloud), not the free/pro/team version; product-release notes are on `github.blog/changelog`.
+
+| Tag | Establishes | URL |
+|-----|-------------|-----|
+| **B1** | AI credit = $0.01; included per seat (1,900/3,900; promo 3,000/7,000); enterprise pooling; monthly reset/no rollover; completions not billed | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises |
+| **B2** | Per-token model pricing; token→credit conversion; code review also consumes Actions minutes | https://docs.github.com/en/enterprise-cloud@latest/copilot/reference/copilot-billing/models-and-pricing |
+| **B3** | Seat prices: Business $19, Enterprise $39 per seat/month | https://docs.github.com/en/enterprise-cloud@latest/copilot/get-started/plans |
+| **B4** | Budget scopes/hierarchy; user-level budgets cap total & always hard-stop; per-request evaluation order; lowest-headroom-wins | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/billing/budgets-for-usage-based-billing |
+| **B5** | Budgets cap metered only; **max bill = licenses + enterprise budget** (400×$19 + $5,000 = $12,600); cost-center budgets | https://docs.github.com/en/enterprise-cloud@latest/billing/tutorials/control-costs-at-scale |
+| **B6** | "Stop usage when budget limit is reached" is OFF by default; alert thresholds 75/90/100% | https://docs.github.com/en/enterprise-cloud@latest/billing/concepts/budgets-and-alerts |
+| **B7** | License-based products cannot be hard-capped by a budget (alerts only) | https://docs.github.com/en/enterprise-cloud@latest/billing/how-tos/set-up-budgets |
+| **B8** | REST cost centers; `ai_credit_pool_enabled` field (auto-sized included-usage cap) | https://docs.github.com/en/enterprise-cloud@latest/rest/billing/cost-centers |
+| **B9** | REST budgets; scope values incl. `multi_user_cost_center`, `multi_user_customer`, `cost_center`, `enterprise` | https://docs.github.com/en/enterprise-cloud@latest/rest/billing/budgets |
+| **B10** | Cost center concept; a resource belongs to only one CC (⇒ Σ members ≤ licenses); included-usage controls don't redistribute the pool | https://docs.github.com/en/enterprise-cloud@latest/billing/concepts/cost-centers |
+| **B11** | Cost-center allocation/attribution; usage not in a CC bills to the enterprise | https://docs.github.com/en/enterprise-cloud@latest/billing/reference/cost-center-allocation |
+| **B12** | Per-user AI credit budgets for cost centers (API-only) | https://github.blog/changelog/2026-06-30-per-user-ai-credit-budgets-available-for-cost-centers/ |
+| **B13** | Cost centers support an AI credit pool cap (single `ai_credit_pool_enabled` boolean, auto-sized to 3,000/7,000 AICR per license; behavior at the cap = the enterprise overages policy, **not** a per-CC block/overage field; API-only, UI early July) | https://github.blog/changelog/2026-07-02-cost-centers-now-support-included-usage-caps/ |
+| **B14** | Auto-model-selection −10% discount on model cost (paid plans) | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/models/auto-model-selection |
+| **B15** | Data-residency / FedRAMP-compliant requests: +10% AI credit consumption | https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/github-copilot-with-data-residency |
+| **B16** | Identify power users and set individual budget overrides (higher per-user budget that overrides the universal budget) | https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides |
+| **B17** | Copilot policies are governance controls in the enterprise **"AI controls"** tab / organization settings (feature, model, agent & usage policies) | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/policies |
+| **B18** | Enterprise-scoped budgets can **exclude cost-center usage** (single enterprise-budget setting; CC usage excluded collectively; default includes; REST + audit log) | https://github.blog/changelog/2026-01-19-enterprise-scoped-budgets-that-exclude-cost-center-usage-in-public-preview/ |
+
+## Additional context (not tagged inline)
+
+| Establishes | URL |
+|-------------|-----|
+| Assign enterprise teams to cost centers (membership auto-syncs) | https://github.blog/changelog/2026-06-25-assign-enterprise-teams-to-cost-centers/ |
+| Product & SKU names (`copilot_ai_credits`, `ai_credits` bundle, etc.) | https://docs.github.com/en/enterprise-cloud@latest/billing/reference/product-and-sku-names |
+| Budget sizing / forecasting guidance | https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/optimizing-your-budget-configuration |
+
+## Full research report
+
+The exhaustive source-of-truth research (with quotes and freshness notes) that these facts were distilled from is retained in the session workspace:
+`research/do-detailed-research-on-how-github-copilot-usage-b.md`.

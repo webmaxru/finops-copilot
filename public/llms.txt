@@ -1,0 +1,32 @@
+# Copilot Enterprise Spend Simulator
+
+> A browser-only simulator that models one month of GitHub Copilot **enterprise** spend under usage-based (AI-credit) billing — across Copilot **Business** and **Enterprise** seats and multiple **cost centers** — showing the shared included credit pool draining and metered (overage) cost growing until it hits configured budgets and limits.
+
+The app runs entirely client-side (React + TypeScript + Vite; no backend). It exists to make usage-based Copilot billing legible for enterprise FinOps analysts, platform / developer-experience admins, and engineering leaders who own Copilot spend. The workflow: adjust smart-default sliders, add or remove cost centers, then play an animated day 1→30 simulation and read the KPIs, burndown/spend charts, and warnings. Since June 1 2026 a monthly bill is `fixed license fees + metered usage after the shared included credit pool drains`.
+
+Trust model: every billing rule is validated against official GitHub documentation and tagged **[Fact]** (GitHub-documented), **[Derived]** (arithmetic consequence), or **[Assumption]** (a simulator modeling choice). The engine (`runSimulation`) is a pure, deterministic, seeded function of its inputs. It is a decision-support instrument for quick validation — explicitly **not** an invoice, and it does **not** model per-token pricing (usage is entered directly in AI credits).
+
+## App
+
+- [Copilot Enterprise Spend Simulator](https://webmaxru.github.io/finops-copilot/): The live tool — enterprise-wide and per-cost-center inputs, an animated 30-day credit-pool burndown and metered-spend chart, KPI readouts, and budget/limit warnings.
+
+## Calculation documentation
+
+- [Calculation docs index](https://github.com/webmaxru/finops-copilot/blob/main/docs/README.md): Notation, scope boundary, and the [Fact]/[Derived]/[Assumption] legend.
+- [Formulas](https://github.com/webmaxru/finops-copilot/blob/main/docs/formulas.md): Every symbol and formula in formal notation, with its code location, source link, and provenance tag. The canonical reference.
+- [Billing model](https://github.com/webmaxru/finops-copilot/blob/main/docs/billing-model.md): The real GitHub Copilot usage-based billing rules the engine is built on, plus documented mechanics it deliberately omits (token→credit conversion, auto-select discount, data-residency surcharge).
+- [Simulation engine](https://github.com/webmaxru/finops-copilot/blob/main/docs/simulation-engine.md): The end-to-end algorithm — data flow, group construction, the per-day accounting loop, budget evaluation order, outputs, and warnings.
+- [References](https://github.com/webmaxru/finops-copilot/blob/main/docs/references.md): Consolidated list of every cited official GitHub documentation URL.
+
+## Source
+
+- [GitHub repository](https://github.com/webmaxru/finops-copilot): Full source (MIT-style static web app), build/deploy workflow, and contributor rules.
+- [README](https://github.com/webmaxru/finops-copilot/blob/main/README.md): Overview, how the app maps to real GitHub billing, inputs, and getting started.
+
+## Authoritative references (official GitHub docs)
+
+- [Usage-based billing for organizations and enterprises](https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises): AI credit = $0.01, included allowances per seat, enterprise pooling, monthly reset, completions not billed.
+- [Copilot plans & seat pricing](https://docs.github.com/en/enterprise-cloud@latest/copilot/get-started/plans): Business $19 and Enterprise $39 per seat / month.
+- [Budgets for usage-based billing](https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/billing/budgets-for-usage-based-billing): Budget scopes/hierarchy; user-level budgets cap total usage and always hard-stop; per-request evaluation.
+- [Control costs at scale](https://docs.github.com/en/enterprise-cloud@latest/billing/tutorials/control-costs-at-scale): Budgets cap metered spend only; max bill = licenses + enterprise budget; cost-center budgets.
+- [Cost centers](https://docs.github.com/en/enterprise-cloud@latest/billing/concepts/cost-centers): A resource belongs to exactly one cost center; usage not in a cost center bills to the enterprise.

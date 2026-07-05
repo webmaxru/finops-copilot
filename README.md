@@ -64,6 +64,41 @@ A workflow is included at `.github/workflows/deploy.yml`:
 
 `vite.config.ts` uses `base: './'`, so the built SPA works on any Pages project subpath (`https://<user>.github.io/<repo>/`) without hardcoding the repo name.
 
+## Discovery & SEO (search + AI agents)
+
+The site ships a full set of discovery metadata so it is well indexed by search
+engines and well understood by AI agents. Static assets live in [`public/`](./public/)
+(Vite copies them verbatim to `dist/` root); per-page metadata lives in
+[`index.html`](./index.html).
+
+| Asset | Purpose |
+|---|---|
+| `index.html` `<head>` | Title, description, canonical, `robots`/`googlebot`, Open Graph, Twitter card, and schema.org JSON-LD (`WebSite` + `WebApplication` + `Person`). Absolute URLs use the production origin; icon/manifest links are root paths that Vite rebases to the deployed base. |
+| `<noscript>` fallback | Meaningful content + links for no-JS crawlers/agents (this is a client-rendered SPA). |
+| `favicon.svg` / `favicon.ico` / `apple-touch-icon.png` | Scalable + legacy + iOS icons (the indigo→violet brand tile with the `◈` mark). |
+| `icon-192.png` / `icon-512.png` / `icon-maskable-512.png` | PWA icons, incl. a maskable variant with safe padding. |
+| `og-image.png` (1200×630) | Social share image, derived from the design system. |
+| `site.webmanifest` | PWA manifest (relative URLs → subpath-portable). |
+| `robots.txt` | Allows crawling, welcomes major AI agents by explicit group, and references `sitemap.xml`. |
+| `sitemap.xml` | The canonical URL with `<lastmod>`. |
+| `llms.txt` / `llms-full.txt` | [llmstxt.org](https://llmstxt.org) discovery: a curated link index and the full concatenated README + `docs/` text for agents. |
+| `404.html` / `humans.txt` | Branded not-found page and site credits. |
+
+The **canonical origin** is `https://webmaxru.github.io/finops-copilot/`; update the
+absolute URLs in `index.html`, `robots.txt`, `sitemap.xml`, `llms.txt`, and the icon
+scripts if the site moves to a custom domain. Because this is a **GitHub Pages
+project site**, `robots.txt`/`sitemap.xml` ship at the project subpath (not the
+domain root) — the best available placement without a custom domain.
+
+Raster images and the full-text file are **pre-generated and committed** (no
+build-time image toolchain). Regenerate them with:
+
+```bash
+python scripts/generate-icons.py     # favicons, PWA/app icons, og-image.png
+python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
+```
+
+
 ## Accuracy & caveats
 
 - A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
