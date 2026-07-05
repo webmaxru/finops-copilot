@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-05T14:52:34Z",
+  "title": "Design System: Copilot Enterprise Spend Simulator",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Signal Indigo",
+        "canonical": "oklch(64.0% 0.194 275.3)",
+        "tonalRamp": ["oklch(20.0% 0.136 275.3)", "oklch(31.0% 0.194 275.3)", "oklch(42.0% 0.194 275.3)", "oklch(53.0% 0.194 275.3)", "oklch(64.0% 0.194 275.3)", "oklch(74.0% 0.194 275.3)", "oklch(85.0% 0.194 275.3)", "oklch(94.0% 0.136 275.3)"]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Enterprise Violet",
+        "canonical": "oklch(69.3% 0.181 303.8)",
+        "tonalRamp": ["oklch(20.0% 0.127 303.8)", "oklch(31.0% 0.181 303.8)", "oklch(42.0% 0.181 303.8)", "oklch(53.0% 0.181 303.8)", "oklch(64.0% 0.181 303.8)", "oklch(74.0% 0.181 303.8)", "oklch(85.0% 0.181 303.8)", "oklch(94.0% 0.127 303.8)"]
+      },
+      "pool": {
+        "role": "tertiary",
+        "displayName": "Pool Teal",
+        "canonical": "oklch(77.7% 0.148 167.8)",
+        "tonalRamp": ["oklch(20.0% 0.103 167.8)", "oklch(31.0% 0.148 167.8)", "oklch(42.0% 0.148 167.8)", "oklch(53.0% 0.148 167.8)", "oklch(64.0% 0.148 167.8)", "oklch(74.0% 0.148 167.8)", "oklch(85.0% 0.148 167.8)", "oklch(94.0% 0.103 167.8)"]
+      },
+      "metered": {
+        "role": "tertiary",
+        "displayName": "Meter Amber",
+        "canonical": "oklch(80.9% 0.147 77.4)",
+        "tonalRamp": ["oklch(20.0% 0.103 77.4)", "oklch(31.0% 0.147 77.4)", "oklch(42.0% 0.147 77.4)", "oklch(53.0% 0.147 77.4)", "oklch(64.0% 0.147 77.4)", "oklch(74.0% 0.147 77.4)", "oklch(85.0% 0.147 77.4)", "oklch(94.0% 0.103 77.4)"]
+      },
+      "limit": {
+        "role": "tertiary",
+        "displayName": "Limit Coral",
+        "canonical": "oklch(70.7% 0.177 17.0)",
+        "tonalRamp": ["oklch(20.0% 0.124 17.0)", "oklch(31.0% 0.177 17.0)", "oklch(42.0% 0.177 17.0)", "oklch(53.0% 0.177 17.0)", "oklch(64.0% 0.177 17.0)", "oklch(74.0% 0.177 17.0)", "oklch(85.0% 0.177 17.0)", "oklch(94.0% 0.124 17.0)"]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Deep-Ink Navy",
+        "canonical": "oklch(15.3% 0.024 271.2)",
+        "tonalRamp": ["oklch(20.0% 0.017 271.2)", "oklch(31.0% 0.024 271.2)", "oklch(42.0% 0.024 271.2)", "oklch(53.0% 0.024 271.2)", "oklch(64.0% 0.024 271.2)", "oklch(74.0% 0.024 271.2)", "oklch(85.0% 0.024 271.2)", "oklch(94.0% 0.017 271.2)"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Muted",
+        "canonical": "oklch(67.0% 0.058 270.0)",
+        "tonalRamp": ["oklch(20.0% 0.041 270.0)", "oklch(31.0% 0.058 270.0)", "oklch(42.0% 0.058 270.0)", "oklch(53.0% 0.058 270.0)", "oklch(64.0% 0.058 270.0)", "oklch(74.0% 0.058 270.0)", "oklch(85.0% 0.058 270.0)", "oklch(94.0% 0.041 270.0)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The headline bill readout only — the gauge's needle." },
+      "headline": { "displayName": "Headline", "purpose": "Secondary readouts: max bill, pool-exhausted day, blocked count." },
+      "title": { "displayName": "Title", "purpose": "App/brand name and section titles (with a leading gradient tick)." },
+      "body": { "displayName": "Body", "purpose": "UI copy and captions; prose capped near 62ch." },
+      "label": { "displayName": "Label / Data", "purpose": "Mono uppercase readout labels, meter scales, status chips, the single hero eyebrow." }
+    },
+    "shadows": [
+      { "name": "subtle", "value": "0 1px 2px rgba(2,5,15,0.4)", "purpose": "Slider thumbs and small raised chips." },
+      { "name": "panel-lift", "value": "0 10px 30px -12px rgba(2,5,15,0.7)", "purpose": "Panels, hero, and cards on hover." },
+      { "name": "pop", "value": "0 16px 40px -12px rgba(2,5,15,0.8)", "purpose": "Info popovers and floating surfaces." },
+      { "name": "focus-ring", "value": "0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent)", "purpose": "Universal :focus-visible treatment." }
+    ],
+    "motion": [
+      { "name": "state", "value": "0.15s ease", "purpose": "Default UI state transitions (buttons, borders, hovers)." },
+      { "name": "control", "value": "0.18s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Toggle knob and control-surface transitions." },
+      { "name": "meter", "value": "0.6s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Bill-meter segment growth and chart advance as the day steps." },
+      { "name": "reveal", "value": "0.5s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Rise-in entrance for hero/controls/main, staggered 0 / 0.06s / 0.12s." },
+      { "name": "pulse", "value": "2.4s ease-in-out infinite", "purpose": "Teal live-status dot heartbeat." }
+    ],
+    "breakpoints": [
+      { "name": "control-stack", "value": "420px" },
+      { "name": "compact", "value": "560px" },
+      { "name": "hero-stack", "value": "780px" },
+      { "name": "max-shell", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The primary action — indigo gradient with a soft glow.",
+      "html": "<button class=\"ds-btn-primary\">Reshuffle usage</button>",
+      "css": ".ds-btn-primary { font: 600 14px/1 'IBM Plex Sans', system-ui, sans-serif; color: #fff; background: linear-gradient(180deg, var(--brand-strong), var(--brand)); border: 1px solid color-mix(in srgb, var(--brand) 70%, #000); border-radius: 9px; padding: 7px 13px; cursor: pointer; box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--brand) 80%, transparent); transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease; } .ds-btn-primary:hover { background: linear-gradient(180deg, var(--brand-strong), var(--brand-strong)); border-color: var(--brand-strong); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis / destructive action; turns coral on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Remove</button>",
+      "css": ".ds-btn-ghost { font: 500 12.5px/1 'IBM Plex Sans', system-ui, sans-serif; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 9px; padding: 6px 9px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-ghost:hover { background: color-mix(in srgb, var(--limit) 14%, transparent); color: var(--limit); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent); }"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The base surface container, with a section title carrying a leading gradient tick.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-title\">Enterprise controls</h2><p class=\"ds-panel-body\">Tonal-layered surface; depth comes from the panel ramp, not a heavy shadow.</p></section>",
+      "css": ".ds-panel { background: linear-gradient(180deg, color-mix(in srgb, var(--panel-2) 45%, var(--panel)), var(--panel)); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: 0 10px 30px -12px rgba(2,5,15,0.7); color: var(--text); } .ds-panel-title { font: 600 15px/1.2 'Space Grotesk', system-ui, sans-serif; letter-spacing: -0.01em; margin: 0 0 10px; display: flex; align-items: center; gap: 9px; } .ds-panel-title::before { content: ''; width: 3px; height: 15px; border-radius: 2px; background: linear-gradient(var(--brand), var(--accent)); flex: none; } .ds-panel-body { font: 400 14px/1.5 'IBM Plex Sans', system-ui, sans-serif; color: var(--text-dim); margin: 0; }"
+    },
+    {
+      "name": "Range Slider",
+      "kind": "input",
+      "refersTo": "slider",
+      "description": "Indigo-filled range with a white, indigo-ringed thumb.",
+      "html": "<input type=\"range\" class=\"ds-range\" min=\"0\" max=\"100\" value=\"45\" style=\"--pos:45%\" aria-label=\"Average monthly usage\" />",
+      "css": ".ds-range { -webkit-appearance: none; appearance: none; width: 240px; height: 22px; background: transparent; cursor: pointer; } .ds-range::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--brand) 0 var(--pos, 0%), var(--panel-3) var(--pos, 0%) 100%); } .ds-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%; background: #fff; border: 3px solid var(--brand); box-shadow: 0 1px 2px rgba(2,5,15,0.4); transition: transform 0.1s ease; } .ds-range:hover::-webkit-slider-thumb { transform: scale(1.12); } .ds-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent); }"
+    },
+    {
+      "name": "Switch",
+      "kind": "input",
+      "refersTo": "switch",
+      "description": "Pill toggle; fills indigo-soft when checked.",
+      "html": "<input type=\"checkbox\" class=\"ds-switch\" checked aria-label=\"Stop usage at limit\" />",
+      "css": ".ds-switch { -webkit-appearance: none; appearance: none; position: relative; width: 34px; height: 20px; border-radius: 999px; background: var(--panel-3); border: 1px solid var(--border); cursor: pointer; transition: background 0.18s ease, border-color 0.18s ease; } .ds-switch::before { content: ''; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), background 0.18s ease; } .ds-switch:checked { background: color-mix(in srgb, var(--brand) 16%, transparent); border-color: var(--brand); } .ds-switch:checked::before { transform: translateX(14px); background: var(--brand-strong); } .ds-switch:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent); }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Live-simulation pill with a pulsing teal dot.",
+      "html": "<span class=\"ds-chip\"><span class=\"ds-chip-dot\"></span>Day <strong>18</strong> / 30 · pool draining</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 'IBM Plex Mono', ui-monospace, monospace; color: var(--muted); padding: 6px 12px; background: color-mix(in srgb, var(--panel-2) 70%, transparent); border: 1px solid var(--border-soft); border-radius: 999px; } .ds-chip strong { color: var(--text); font-weight: 600; } .ds-chip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pool); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pool) 16%, transparent); animation: ds-pulse 2.4s ease-in-out infinite; } @keyframes ds-pulse { 0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pool) 16%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--pool) 8%, transparent); } } @media (prefers-reduced-motion: reduce) { .ds-chip-dot { animation-duration: 0.001ms; } }"
+    },
+    {
+      "name": "Bill-Composition Meter",
+      "kind": "custom",
+      "refersTo": "meter",
+      "description": "The signature gauge: a license segment and a metered segment fill a ticked track against a coral limit ceiling.",
+      "html": "<div class=\"ds-meter\"><div class=\"ds-meter-track\"><div class=\"ds-meter-seg ds-meter-license\" style=\"left:0;width:46%\"></div><div class=\"ds-meter-seg ds-meter-metered\" style=\"left:46%;width:31%\"></div><div class=\"ds-meter-ceiling\" style=\"left:82%\"></div></div><div class=\"ds-meter-scale\"><span>$0</span><span class=\"ds-meter-ceil\">limit $8,200</span></div></div>",
+      "css": ".ds-meter { display: grid; gap: 8px; width: 320px; } .ds-meter-track { position: relative; height: 26px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--text) 12%, transparent) 0 1px, transparent 1px 10%), var(--panel-3); } .ds-meter-seg { position: absolute; top: 0; bottom: 0; transition: width 0.6s cubic-bezier(0.22,1,0.36,1), left 0.6s cubic-bezier(0.22,1,0.36,1); } .ds-meter-license { background: linear-gradient(180deg, var(--brand-strong), var(--brand)); } .ds-meter-metered { background: linear-gradient(180deg, color-mix(in srgb, var(--metered) 88%, #fff), var(--metered)); } .ds-meter-ceiling { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--limit); box-shadow: 0 0 0 3px color-mix(in srgb, var(--limit) 22%, transparent); } .ds-meter-scale { display: flex; justify-content: space-between; font: 500 11px/1 'IBM Plex Mono', ui-monospace, monospace; color: var(--muted); } .ds-meter-ceil { color: color-mix(in srgb, var(--limit) 85%, var(--text)); } @media (prefers-reduced-motion: reduce) { .ds-meter-seg { transition-duration: 0.001ms; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Meter",
+    "overview": "This is a precision spend instrument, not a dashboard. Every decision serves one act: reading a bill as it forms. The surface is a deep-ink navy cockpit tinted toward indigo, over which panels rise through tonal layering rather than shadow. Numbers are the material: ledger-grade tabular monospace so digits never jitter while the day 1 to 30 simulation animates the credit pool draining and the metered overage climbing toward a hard limit. The palette is information, not decoration: five semantic hues carry fixed meaning everywhere they appear. It rejects the generic SaaS dashboard, the flashy consumer/marketing site, and the intimidating raw spreadsheet in equal measure.",
+    "keyCharacteristics": [
+      "Deep-ink navy cockpit with indigo-tinted neutrals; depth from tonal layering, not heavy shadow.",
+      "A fixed, information-coded five-color semantic system (pool / metered / limit / Business / Enterprise).",
+      "Ledger-grade tabular-mono numerals for every value that changes during the simulation.",
+      "Space Grotesk (display) + IBM Plex Sans (UI) + IBM Plex Mono (data) on a real contrast axis.",
+      "One signature component — the bill-composition meter — that everything else supports."
+    ],
+    "rules": [
+      { "name": "The Fixed-Meaning Rule", "body": "The five semantic hues are never used decoratively. Amber always means metered, coral always means blocked, teal always means the pool. If a value isn't one of those things, it doesn't get that color.", "section": "colors" },
+      { "name": "The No-Color-Alone Rule", "body": "Every semantic color is paired with a label, legend, or text token. Meaning must survive a grayscale render — required for color-vision accessibility.", "section": "colors" },
+      { "name": "The Tabular-Numeral Rule", "body": "Any figure that changes during the simulation uses tabular-nums in IBM Plex Mono or Space Grotesk, so digits hold their column and never jitter while scrubbing the timeline.", "section": "typography" },
+      { "name": "The One-Eyebrow Rule", "body": "The mono uppercase eyebrow is a deliberate, singular instrument label in the hero, plus mono readout labels. It is not multiplied above every section; section identity comes from the leading gradient tick.", "section": "typography" },
+      { "name": "The Layer-Before-Shadow Rule", "body": "Reach for the next surface step before a shadow. Shadows respond to state and elevation; they are not the default way to separate content.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the five semantic hues fixed: indigo = interactive/Business, violet = Enterprise/power-user, teal = pool (drains), amber = metered (runs), coral = limit (blocks).",
+      "Do render every changing figure in tabular-mono so digits don't shift during animation.",
+      "Do create depth by stepping the surface ramp (bg -> panel -> panel-2 -> panel-3) before adding a shadow.",
+      "Do pair every semantic color with a label, legend, or text token so meaning survives grayscale.",
+      "Do animate state with cubic-bezier(0.22, 1, 0.36, 1) (0.15-0.18s for UI state, 0.6s for the meter), and keep the prefers-reduced-motion collapse intact.",
+      "Do treat the bill-composition meter as the signature — license + metered segments read against the coral ceiling."
+    ],
+    "donts": [
+      "Don't build a generic SaaS hero-metric template (big number + gradient accent + supporting stats). The bill readout is an instrument, not a marketing metric.",
+      "Don't add identical icon-heading-text card grids, or a tracked uppercase eyebrow above every section.",
+      "Don't go flashy/consumer-marketing: no drenched heroes, no motion for spectacle.",
+      "Don't turn dense figures into a raw spreadsheet wall — keep them color-coded and guided.",
+      "Don't use background-clip: text gradient text; emphasize with weight, size, or a single solid color.",
+      "Don't use a border-left/border-right greater than 1px as a colored accent stripe.",
+      "Don't repurpose a semantic hue decoratively — no amber unless it means metered, no coral unless it means blocked."
+    ]
+  }
+}
