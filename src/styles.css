@@ -42,7 +42,7 @@
   --radius: 14px;
   --radius-lg: 18px;
   --gap: 16px;
-  --topbar-h: 58px;
+  --topbar-h: 52px;
 
   --font-display: 'IBM Plex Sans Condensed', 'IBM Plex Sans', system-ui, sans-serif;
   --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -210,7 +210,7 @@ button.primary:hover {
 }
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   min-width: 0;
   flex: 1 1 auto;
@@ -583,12 +583,16 @@ button.primary:hover {
   background: transparent;
   color: var(--muted);
   font-family: inherit;
-  font-size: 10px;
-  font-style: italic;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1;
   cursor: help;
   user-select: none;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+.info__trigger:hover {
+  color: var(--text-dim);
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
 }
 .info__trigger:focus-visible {
   outline: none;
@@ -606,6 +610,7 @@ button.primary:hover {
   font-style: normal;
   font-weight: 400;
   line-height: 1.45;
+  white-space: normal;
   color: var(--text);
   background: var(--panel-2);
   border: 1px solid var(--border);

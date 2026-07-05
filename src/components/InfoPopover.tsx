@@ -12,7 +12,7 @@ export default function InfoPopover({ text }: { text: ReactNode }) {
         aria-label="More information"
         aria-describedby={tipId}
       >
-        i
+        ?
       </button>
       <span role="tooltip" id={tipId} className="info-pop">
         {text}
