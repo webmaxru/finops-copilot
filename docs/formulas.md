@@ -4,7 +4,7 @@ Canonical, formal specification of every quantity the engine computes. Each row/
 
 > **Provenance at a glance:** for a single table classifying **every value's min, max, and default** as Asserted / Derived / Documented, see **§2.2 Provenance of every configurable value** below.
 
-Convention: `round` = round half to +∞ (JavaScript `Math.round`); $\lfloor\cdot\rceil$ denotes it. All money in USD, all credits in AICR, related by $c$.
+Convention: `round` = round half to +∞ (JavaScript `Math.round`); $\lfloor\cdot\rceil$ denotes it. All money in USD, all credits in AIC, related by $c$.
 
 ---
 
@@ -12,7 +12,7 @@ Convention: `round` = round half to +∞ (JavaScript `Math.round`); $\lfloor\cdo
 
 | Symbol | Value | Code | Source | Tag |
 |--------|------:|------|--------|-----|
-| $c$ | $0.01$ USD/AICR | `defaults.ts:4` (`CREDIT_USD`) | [B1][B2] | Fact |
+| $c$ | $0.01$ USD/AIC | `defaults.ts:4` (`CREDIT_USD`) | [B1][B2] | Fact |
 | $p_B,\ p_E$ | $19,\ 39$ | `defaults.ts:7-10` (`SEAT_PRICE`) | [B3] | Fact |
 | $I_B^{std},I_E^{std}$ | $1900,\ 3900$ | `defaults.ts:13-16` (`INCLUDED`) | [B1] | Fact |
 | $I_B^{promo},I_E^{promo}$ | $3000,\ 7000$ | `defaults.ts:13-16` | [B1] | Fact |
@@ -83,7 +83,7 @@ Explicit classification of **every** value's bounds and default. **Kind:** **A**
 
 | Constant | Value | Kind | Source |
 |---|---|---|---|
-| Credit rate $c$ | $0.01 / AICR | **Doc** | 1 AI credit = $0.01 [B1][B2] |
+| Credit rate $c$ | $0.01 / AIC | **Doc** | 1 AI credit = $0.01 [B1][B2] |
 | Seat price $p_B / p_E$ | $19 / $39 | **Doc** | [B3] |
 | Included $I_B / I_E$ (standard) | 1,900 / 3,900 | **Doc** | [B1] |
 | Included (promo → Sep 1 2026) | 3,000 / 7,000 | **Doc** | [B1] |

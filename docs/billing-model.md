@@ -14,14 +14,14 @@ total bill = license fees (fixed)  +  metered usage (variable, after the include
 - **Included usage** is a monthly allowance of AI credits bundled with each seat, **pooled at the enterprise level**. [B1]
 - **Metered usage** is pay-as-you-go, billed only after the shared pool is exhausted. [B1]
 
-## 2. The AI credit (AICR)
+## 2. The AI credit (AIC)
 
 - **1 AI credit = $0.01 USD**, fixed. [B1][B2]
 - Copilot usage is measured in AI credits; **code completions and next-edit suggestions are not billed** and are excluded from the model. [B1][B2]
 
 ## 3. Seat prices and included allowances
 
-| Plan | Price $p$ (USD/seat/mo) | Included $I$ (AICR/seat/mo), standard | Promo (Jun 1 – Sep 1 2026) |
+| Plan | Price $p$ (USD/seat/mo) | Included $I$ (AIC/seat/mo), standard | Promo (Jun 1 – Sep 1 2026) |
 |------|------------------------:|--------------------------------------:|---------------------------:|
 | Copilot Business | **19** | **1,900** | **3,000** |
 | Copilot Enterprise | **39** | **3,900** | **7,000** |
@@ -30,7 +30,7 @@ Sources: prices [B3], included allowances and promo window [B1]. Note the **[Der
 
 ## 4. Pooling and reset
 
-- A seat's included credits are **pooled at the billing-entity (enterprise) level**; e.g. 100 Business seats → one shared pool of 190,000 AICR. [B1]
+- A seat's included credits are **pooled at the billing-entity (enterprise) level**; e.g. 100 Business seats → one shared pool of 190,000 AIC. [B1]
 - The pool **resets monthly** (00:00 UTC on the 1st) and **does not roll over**. [B1] The simulator models exactly one month of `D = 30` days.
 
 ## 5. Budgets and limits
@@ -77,10 +77,10 @@ The enterprise/org **"AI credit paid usage"** policy globally governs whether **
 The app models usage in **credits directly**, not tokens, so the following documented mechanics are **out of scope today**. Documented here so a future token-level version can add them.
 
 ### 7.1 Token → credit conversion  **[Fact, not implemented]**
-Cost is computed from model per-token prices (input / cached / output, plus cache-write for Anthropic), summed to USD, then converted at 1 AICR = $0.01: [B2]
+Cost is computed from model per-token prices (input / cached / output, plus cache-write for Anthropic), summed to USD, then converted at 1 AIC = $0.01: [B2]
 ```
 USD = Σ_type (tokens_type / 1e6) × price_type(model)
-AICR = USD / 0.01
+AIC = USD / 0.01
 ```
 Extension point: replace the direct average-usage inputs (enterprise + per-cost-center `avgDevUsageCredits`, see `formulas.md` §4) with a token-based estimator producing per-user credits.
 

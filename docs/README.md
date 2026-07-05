@@ -23,26 +23,26 @@ Each formula is tagged so future developers know what is authoritative:
 
 ## Scope boundary (read this first)
 
-The simulator models a developer's **monthly usage directly in AI credits (AICR)** — it does **not** model per-token consumption. Consequently the documented **token→credit conversion**, the **auto-model-selection −10% discount**, and the **data-residency +10% surcharge** are **not** applied by the engine today. They are documented in [`billing-model.md`](./billing-model.md) as the underlying reality and as extension points, because they belong in any future token-level version. Everything the engine *does* compute is specified exactly in [`formulas.md`](./formulas.md).
+The simulator models a developer's **monthly usage directly in AI credits (AIC)** — it does **not** model per-token consumption. Consequently the documented **token→credit conversion**, the **auto-model-selection −10% discount**, and the **data-residency +10% surcharge** are **not** applied by the engine today. They are documented in [`billing-model.md`](./billing-model.md) as the underlying reality and as extension points, because they belong in any future token-level version. Everything the engine *does* compute is specified exactly in [`formulas.md`](./formulas.md).
 
 ## Notation
 
 | Symbol | Meaning | Unit |
 |--------|---------|------|
-| $c$ | credit-to-dollar rate | USD / AICR |
+| $c$ | credit-to-dollar rate | USD / AIC |
 | $p_B, p_E$ | Business / Enterprise seat price | USD / seat / month |
-| $I_B, I_E$ | included credits per Business / Enterprise seat (standard or promo) | AICR / seat / month |
+| $I_B, I_E$ | included credits per Business / Enterprise seat (standard or promo) | AIC / seat / month |
 | $D$ | days in the simulated month | days |
 | $L$ | total users with licenses (assigned seats) | seats |
 | $\rho$ | Business share of a seat pool | fraction $[0,1]$ |
 | $\alpha$ | active fraction (seats that actually use Copilot) | fraction $[0,1]$ |
-| $\bar u$ | average monthly usage of a *normal* active developer | AICR |
+| $\bar u$ | average monthly usage of a *normal* active developer | AIC |
 | $\phi$ | power-user share $=$ powerUsers$/L$ (input: **number of power users**, 0..$L$, default $\lfloor 0.1L\rceil$) | fraction |
 | $B_{\text{pow}}$ | **average power-user budget** — a power user's usage **and** limit (overrides ULB); \$38–\$760, default \$190 | USD |
 | $v$ | usage variation (coefficient of variation) | fraction $[0,1]$ |
 | $B_{\text{ind}}$ | **universal user-level budget (ULB)** for normal users (default $\bar u\cdot c$; slider max $10\,\bar u\cdot c$) | USD |
 | $\beta_E$ | enterprise metered budget (absolute) | USD $[0,\ \$256\cdot L]$ (max scales with total users) |
 | $g$ | a group: a cost center, or the "unassigned" group | — |
-| $C_g, V_g$ | group $g$ included credits (carveout) / license value | AICR / USD |
+| $C_g, V_g$ | group $g$ included credits (carveout) / license value | AIC / USD |
 
-The 1 AICR = $0.01 identity means AICR and USD are interchangeable via $\times c$; the engine stores the **pool in credits** and **all budgets/spend in USD**.
+The 1 AIC = $0.01 identity means AIC and USD are interchangeable via $\times c$; the engine stores the **pool in credits** and **all budgets/spend in USD**.

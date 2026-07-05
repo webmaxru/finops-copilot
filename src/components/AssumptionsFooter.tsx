@@ -1,6 +1,6 @@
 const notes = [
-  'AICR = AI Credits — 1 AICR = $0.01 USD',
-  'Included per seat: Business 1,900 AICR ($19) · Enterprise 3,900 AICR ($39); promo 3,000/7,000 until Sep 1 2026',
+  'AIC = AI Credits — 1 AIC = $0.01 USD',
+  'Included per seat: Business 1,900 AIC ($19) · Enterprise 3,900 AIC ($39); promo 3,000/7,000 until Sep 1 2026',
   'Budgets cap metered usage on top of license fees (max bill = licenses + budget); stop-usage real-world default is OFF',
   'Individual/cost-center per-user limits cap total (pool + metered) and always hard-stop',
   'Code completions & next-edit suggestions are unlimited and NOT billed',
