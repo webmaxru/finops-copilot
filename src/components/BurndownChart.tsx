@@ -19,16 +19,18 @@ export default function BurndownChart() {
   return (
     <section className="panel">
       <h2 style={{ marginTop: 0 }}>Enterprise: included pool draining vs. metered spend (month)</h2>
-      <SpendChart
-        data={data}
-        includedName="Included pool left ($)"
-        activeUsers={sim.activeUsers}
-        height={300}
-        refLines={[
-          { y: sim.enterpriseBudgetUsd, label: 'Ent metered budget', color: 'var(--metered)' },
-          { y: sim.maxBillUsd, label: 'max bill', color: 'var(--limit)' },
-        ]}
-      />
+      <div className="chart-frame">
+        <SpendChart
+          data={data}
+          includedName="Included pool left ($)"
+          activeUsers={sim.activeUsers}
+          height={300}
+          refLines={[
+            { y: sim.enterpriseBudgetUsd, label: 'Ent metered budget', color: 'var(--metered)' },
+            { y: sim.maxBillUsd, label: 'max bill', color: 'var(--limit)' },
+          ]}
+        />
+      </div>
     </section>
   );
 }

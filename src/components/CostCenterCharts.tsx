@@ -32,22 +32,24 @@ export default function CostCenterCharts() {
           const end = g.days[g.days.length - 1];
           return (
             <div key={g.key} style={{ display: 'grid', gap: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div className="chart-head">
                 <strong>{g.label}</strong>
-                <span className="muted" style={{ fontSize: 12 }}>
+                <span className="chart-head__meta">
                   {fmtInt(g.seats)} seats · {fmtInt(g.activeUsers)} active · {fmtInt(g.powerUsers)} power ·
                   metered {fmtUsd(end?.meteredUsd ?? 0)} · blocked {end?.blockedUsers ?? 0}/{g.activeUsers}
                 </span>
               </div>
-              <SpendChart
-                data={g.days.map(toPoint)}
-                includedName="Included used ($)"
-                activeUsers={g.activeUsers}
-                height={230}
-                refLines={
-                  budget != null ? [{ y: budget, label: 'CC budget', color: 'var(--metered)' }] : []
-                }
-              />
+              <div className="chart-frame">
+                <SpendChart
+                  data={g.days.map(toPoint)}
+                  includedName="Included used ($)"
+                  activeUsers={g.activeUsers}
+                  height={230}
+                  refLines={
+                    budget != null ? [{ y: budget, label: 'CC budget', color: 'var(--metered)' }] : []
+                  }
+                />
+              </div>
             </div>
           );
         })

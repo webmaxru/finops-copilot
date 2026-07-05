@@ -7,6 +7,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
+  type TooltipProps,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -36,9 +37,23 @@ interface SpendChartProps {
 
 const BLOCKED_NAME = 'Blocked users';
 
-function tooltipFormatter(value: unknown, name: unknown) {
-  if (name === BLOCKED_NAME) return [`${Math.round(Number(value))}`, name] as [string, string];
-  return [fmtUsd(Number(value)), name as string] as [string, string];
+/** Ledger-style tooltip: one mono row per series with a color swatch. */
+function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="chart-tooltip">
+      <div className="chart-tooltip__day">Day {label}</div>
+      {payload.map((p) => (
+        <div className="chart-tooltip__row" key={String(p.dataKey)}>
+          <span className="swatch" style={{ background: p.color }} />
+          <span>{p.name}</span>
+          <span className="val">
+            {p.name === BLOCKED_NAME ? Math.round(Number(p.value)) : fmtUsd(Number(p.value))}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -75,8 +90,11 @@ export default function SpendChart({
             tick={{ fill: 'var(--limit)', fontSize: 11 }}
             width={30}
           />
-          <Tooltip formatter={tooltipFormatter} labelFormatter={(l) => `Day ${l}`} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip
+            content={<ChartTooltip />}
+            cursor={{ stroke: 'var(--border)', strokeDasharray: '3 3' }}
+          />
+          <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
           <Area
             yAxisId="usd"
             type="monotone"

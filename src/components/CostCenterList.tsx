@@ -24,8 +24,8 @@ export default function CostCenterList() {
           flexWrap: 'wrap',
         }}
       >
-        <h2 style={{ margin: 0 }}>Cost centers</h2>
-        <span style={{ fontSize: 13, color: over ? 'var(--limit)' : 'var(--muted)' }}>
+        <h2 className="section-title" style={{ margin: 0 }}>Cost centers</h2>
+        <span className={`cc-summary ${over ? 'status-over' : 'muted'}`}>
           {fmtInt(assigned)}/{fmtInt(totalLicenses)} licenses assigned · {fmtInt(Math.max(0, remaining))}{' '}
           unassigned{over ? ' · exceeds total — reduce members' : ''}
         </span>

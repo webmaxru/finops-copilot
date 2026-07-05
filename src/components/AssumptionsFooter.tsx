@@ -10,8 +10,8 @@ const notes = [
 
 export default function AssumptionsFooter() {
   return (
-    <section className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>
-      <h2 style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 6 }}>Assumptions &amp; notes</h2>
+    <section className="footnotes">
+      <h2>Assumptions &amp; notes</h2>
       <p style={{ marginTop: 0 }}>
         <strong>Disclaimer:</strong> This is a simulation for quick validation only. Results are
         approximate, can be imprecise, and may not reflect newly released Copilot features or pricing

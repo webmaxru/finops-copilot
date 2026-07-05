@@ -39,7 +39,7 @@ export default function GlobalControls() {
     <section className="panel">
       <h2 style={{ marginTop: 0, marginBottom: 14 }}>Enterprise settings</h2>
 
-      <div style={{ display: 'grid', gap: 14 }}>
+      <div className="controls-stack">
         <Slider
           label="Total users with licenses"
           value={totalLicenses}
@@ -120,17 +120,8 @@ export default function GlobalControls() {
           caption={`= ${fmtCredits(usdToCredits(universalUlbUsd))} per user · hard stop · max = 10× avg usage (${fmtUsd(universalUlbMax)})`}
         />
 
-        <div
-          style={{
-            border: '1px solid var(--border)',
-            borderRadius: 10,
-            padding: 12,
-            background: 'var(--panel-2)',
-            display: 'grid',
-            gap: 12,
-          }}
-        >
-          <div style={{ fontWeight: 650 }}>Individual budget override for power-users</div>
+        <div className="control-group">
+          <div className="control-group__title">Individual budget override for power-users</div>
           <Slider
             label="Number of power users"
             value={powerUsers}
@@ -184,11 +175,11 @@ export default function GlobalControls() {
           caption="Hard-stop metered budgets when reached. Real-world default is OFF (alerts only)."
         />
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="controls-actions">
           <button className="primary" type="button" onClick={reset}>
             Reset to defaults
           </button>
-          <button className="" type="button" onClick={reshuffle}>
+          <button type="button" onClick={reshuffle}>
             Reshuffle usage
           </button>
         </div>

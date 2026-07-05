@@ -32,31 +32,23 @@ export default function Slider({
   const pos = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const isRatio = variant === 'ratio';
   return (
-    <label style={{ display: 'block', opacity: disabled ? 0.5 : 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-        <span>{label}</span>
-        <strong>{format ? format(value) : value}</strong>
+    <label className={`control${disabled ? ' is-disabled' : ''}`}>
+      <div className="control__head">
+        <span className="control__label">{label}</span>
+        <span className="control__value">{format ? format(value) : value}</span>
       </div>
       <input
         type="range"
-        className={isRatio ? 'ratio-slider' : undefined}
+        className={isRatio ? 'range range--ratio' : 'range'}
         min={min}
         max={max}
         step={step}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={
-          isRatio
-            ? ({ width: '100%', '--pos': `${pos}%` } as CSSProperties)
-            : { width: '100%', accentColor: 'var(--primary)' }
-        }
+        style={{ '--pos': `${pos}%` } as CSSProperties}
       />
-      {caption != null && (
-        <div className="muted" style={{ fontSize: 12, marginTop: 1 }}>
-          {caption}
-        </div>
-      )}
+      {caption != null && <div className="control__caption">{caption}</div>}
     </label>
   );
 }

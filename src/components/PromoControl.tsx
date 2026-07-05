@@ -10,9 +10,9 @@ export default function PromoControl() {
     <label className="header-toggle">
       <input
         type="checkbox"
+        className="switch"
         checked={promo}
         onChange={(e) => setInput('promo', e.target.checked)}
-        style={{ accentColor: 'var(--primary)', width: 15, height: 15 }}
       />
       <span>Promo period</span>
       <InfoPopover

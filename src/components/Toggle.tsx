@@ -13,23 +13,21 @@ interface ToggleProps {
 /** Simple checkbox-style toggle with an optional caption line. */
 export default function Toggle({ label, checked, onChange, caption, disabled, labelSuffix }: ToggleProps) {
   return (
-    <label style={{ display: 'block', opacity: disabled ? 0.5 : 1, cursor: 'pointer' }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <label className={`toggle${disabled ? ' is-disabled' : ''}`}>
+      <span className="toggle__row">
         <input
           type="checkbox"
+          className="switch"
           checked={checked}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
-          style={{ accentColor: 'var(--primary)', width: 16, height: 16 }}
         />
-        <span>{label}</span>
-        {labelSuffix}
+        <span className="toggle__label">
+          {label}
+          {labelSuffix}
+        </span>
       </span>
-      {caption != null && (
-        <div className="muted" style={{ fontSize: 12, marginTop: 1, marginLeft: 24 }}>
-          {caption}
-        </div>
-      )}
+      {caption != null && <div className="toggle__caption muted">{caption}</div>}
     </label>
   );
 }

@@ -57,34 +57,16 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
   const ccEntSeats = ccSeats - ccBizSeats;
 
   return (
-    <article
-      style={{
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        padding: 12,
-        background: 'var(--panel-2)',
-        display: 'grid',
-        gap: 10,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+    <article className="cc-card">
+      <div className="cc-card__head">
         <input
           type="text"
+          className="cc-name"
           value={cc.name}
           onChange={(e) => setPatch({ name: e.target.value })}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            padding: '6px 8px',
-            background: 'var(--panel-2)',
-            color: 'inherit',
-            font: 'inherit',
-            fontWeight: 700,
-          }}
+          aria-label="Cost center name"
         />
-        <button type="button" onClick={() => remove(id)}>
+        <button type="button" className="btn-ghost" onClick={() => remove(id)}>
           Remove
         </button>
       </div>
@@ -102,13 +84,13 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         )} · funds ${fmtCredits(series?.poolCredits ?? 0)}`}
       />
 
-      <div className="muted" style={{ fontSize: 12, marginTop: -2 }}>
+      <div className="cc-meta" style={{ marginTop: -2 }}>
         {fmtInt(series?.activeUsers ?? 0)} active users ·{' '}
-        <strong style={{ color: 'var(--accent)' }}>{fmtInt(series?.powerUsers ?? 0)} power-users</strong>{' '}
+        <strong className="power">{fmtInt(series?.powerUsers ?? 0)} power-users</strong>{' '}
         (individual budget) · {fmtInt(Math.max(0, (series?.activeUsers ?? 0) - (series?.powerUsers ?? 0)))} normal
       </div>
 
-      <div className="muted" style={{ fontSize: 12 }}>
+      <div className="cc-meta">
         Enterprise mix {Math.round(enterpriseBizRatio * 100)}/{Math.round((1 - enterpriseBizRatio) * 100)} →{' '}
         {fmtInt(ccBizSeats)} Business (${ccBizSeats * SEAT_PRICE.business}) · {fmtInt(ccEntSeats)} Enterprise ($
         {ccEntSeats * SEAT_PRICE.enterprise}) · license value {fmtUsd(series?.licenseValueUsd ?? 0)}
@@ -189,7 +171,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         }
       />
 
-      <div className="muted" style={{ fontSize: 13 }}>
+      <div className="cc-result">
         This month: metered {fmtUsd(series?.monthEndMeteredUsd ?? 0)} · blocked{' '}
         {series?.monthEndBlockedUsers ?? 0}/{series?.activeUsers ?? 0}
       </div>
