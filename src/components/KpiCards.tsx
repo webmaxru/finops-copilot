@@ -1,5 +1,6 @@
 import { useSimResult } from '../state/store';
 import { fmtUsd } from '../model/format';
+import PromoControl from './PromoControl';
 
 /**
  * Hero instrument cluster: the projected bill as the headline, a bill-composition
@@ -23,9 +24,12 @@ export default function KpiCards() {
     <div className="hero-instrument">
       <div className="hero-bill">
         <p className="readout-label">Projected month-end bill</p>
-        <div className="bill-value">
-          {fmtUsd(sim.monthEndBillUsd)}
-          <span className="bill-unit">projected /mo</span>
+        <div className="bill-headline">
+          <div className="bill-value">
+            {fmtUsd(sim.monthEndBillUsd)}
+            <span className="bill-unit">projected /mo</span>
+          </div>
+          <PromoControl />
         </div>
         <div className="bill-split">
           <span>

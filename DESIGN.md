@@ -191,7 +191,7 @@ Hybrid, but **tonal-layering first.** Depth comes primarily from the surface ram
 - **Editable name field:** borderless until hover/focus, then `--panel-2` fill with an indigo border — inline editing, no modal.
 
 ### Navigation
-- **Topbar:** sticky, 58px, translucent blurred base, 1px soft bottom border. Brand mark is a 30px indigo→violet gradient tile; brand name (IBM Plex Sans Condensed) truncates with ellipsis; a mono uppercase sub-label sits beside it. Actions (promo, theme) are pill buttons, right-aligned; sub-label and button labels hide under 560px.
+- **Topbar:** sticky, 58px, translucent blurred base, 1px soft bottom border. Brand mark is a 30px indigo→violet gradient tile; brand name (IBM Plex Sans Condensed) truncates with ellipsis; a mono uppercase sub-label sits beside it. Actions (theme) are pill buttons, right-aligned; sub-label and button labels hide under 560px. The **Promo period** toggle is not in the topbar: it sits to the right of the projected-bill readout in the hero and only appears while the promo window is open (before Sep 1 2026).
 
 ### Status chip
 - Full-pill mono chip on a translucent panel with a **pulsing teal dot** (2.4s ease-in-out) signaling a live simulation; over-limit state recolors to coral.

@@ -19,15 +19,28 @@ export function includedPerSeat(plan: PlanType, promo: boolean): number {
   return promo ? INCLUDED[plan].promo : INCLUDED[plan].std;
 }
 
+/**
+ * End of the promotional-allowance window. GitHub applies the promo included
+ * allowances (I^promo) to usage-based billing from Jun 1 2026 up to — but not
+ * including — Sep 1 2026; standard allowances apply from Sep 1 2026 onward. [B1]
+ */
+export const PROMO_END = new Date('2026-09-01T00:00:00Z');
+
+/** Whether the promotional-allowance window is still open at `now` (default: today). */
+export function isPromoWindowOpen(now: Date = new Date()): boolean {
+  return now.getTime() < PROMO_END.getTime();
+}
+
 export const SIM_DAYS = 30;
 
 export const DEFAULT_TOTAL_LICENSES = 100;
 
 /**
  * Enterprise metered-budget defaults, derived from the default scenario at
- * usageVariation = 0 (see docs/formulas.md §5.2). Validated against a v = 0
- * reference run in engine.test.ts.
- *   default          = expected monthly metered spend at defaults          => $2,620
+ * usageVariation = 0 with standard allowances (promo off — these anchor the
+ * durable post-promo regime; see docs/formulas.md §5.2). Validated against a
+ * v = 0 reference run in engine.test.ts.
+ *   default          = expected monthly metered spend at defaults (standard)  => $2,620
  *   max @ default L  = 5 x total active-developer monthly usage ($5,120)   => $25,600
  * The slider max scales linearly with total users (licenses) so larger orgs
  * get enough range; it recomputes only when total users changes.
@@ -145,7 +158,8 @@ export function DEFAULT_INPUTS(): EnterpriseInputs {
     usageVariation: 0.3,
     universalUlbUsd: DEFAULT_UNIVERSAL_ULB_USD,
     enterpriseLimitUsd: DEFAULT_ENTERPRISE_LIMIT_USD,
-    promo: false,
+    // On by default while the promo window is open (< Sep 1 2026), off afterward.
+    promo: isPromoWindowOpen(),
     enterpriseBudgetExcludesCostCenters: false,
     stopUsageBudgets: true,
     seed: 12345,

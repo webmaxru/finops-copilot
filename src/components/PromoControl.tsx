@@ -1,13 +1,20 @@
 import { useStore } from '../state/store';
+import { isPromoWindowOpen } from '../model/defaults';
 import InfoPopover from './InfoPopover';
 
-/** "Promo period" toggle for the header, with an info popover. */
+/**
+ * "Promo period" toggle shown beside the projected bill while GitHub's
+ * promotional included allowances apply (Jun 1 – Sep 1 2026). Once the window
+ * closes there is nothing to toggle, so the control is removed from the UI.
+ */
 export default function PromoControl() {
   const promo = useStore((s) => s.inputs.promo);
   const setInput = useStore((s) => s.setInput);
 
+  if (!isPromoWindowOpen()) return null;
+
   return (
-    <label className="header-toggle">
+    <label className="header-toggle promo-toggle">
       <input
         type="checkbox"
         className="switch"

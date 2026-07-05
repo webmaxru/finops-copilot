@@ -18,14 +18,33 @@ import {
   CC_BUDGET_DEFAULT_PER_SEAT_USD,
   ccBudgetDefaultUsd,
   ccBudgetMaxUsd,
+  isPromoWindowOpen,
+  PROMO_END,
 } from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
 // Build inputs with no cost centers by default so seat counts are exact.
+// Pin promo off so allowance-dependent expectations stay deterministic
+// regardless of the (now date-based) DEFAULT_INPUTS().promo default.
 const base = (over: Partial<EnterpriseInputs> = {}): EnterpriseInputs => ({
   ...DEFAULT_INPUTS(),
   costCenters: [],
+  promo: false,
   ...over,
+});
+
+describe('promo window (date-gated default & visibility)', () => {
+  it('closes exactly at Sep 1 2026 (open before, closed on/after)', () => {
+    expect(PROMO_END.toISOString()).toBe('2026-09-01T00:00:00.000Z');
+    expect(isPromoWindowOpen(new Date('2026-06-01T00:00:00Z'))).toBe(true);
+    expect(isPromoWindowOpen(new Date('2026-08-31T23:59:59Z'))).toBe(true);
+    expect(isPromoWindowOpen(new Date('2026-09-01T00:00:00Z'))).toBe(false);
+    expect(isPromoWindowOpen(new Date('2026-10-01T00:00:00Z'))).toBe(false);
+  });
+
+  it('DEFAULT_INPUTS().promo tracks the window (on while open, off after)', () => {
+    expect(DEFAULT_INPUTS().promo).toBe(isPromoWindowOpen());
+  });
 });
 
 describe('pool + license math', () => {
@@ -91,6 +110,10 @@ describe('default enterprise-limit constants', () => {
       usageVariation: 0,
       enterpriseLimitUsd: 1e9,
       stopUsageBudgets: false,
+      // Anchor to standard allowances: the enterprise-limit constants ($2,620 /
+      // $25,600) describe the durable post-promo regime, not the temporary promo
+      // pool (DEFAULT_INPUTS().promo is date-based — on before Sep 1 2026).
+      promo: false,
     });
     const totalUsage = ref.monthEndIncludedUsd + ref.monthEndMeteredUsd;
     // Default = expected monthly metered spend at defaults ($2,620).

@@ -390,6 +390,16 @@ button.primary:hover {
   margin-left: 10px;
   vertical-align: baseline;
 }
+.bill-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+}
+.promo-toggle {
+  flex: none;
+}
 .bill-split {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

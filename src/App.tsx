@@ -6,7 +6,6 @@ import CostCenterCharts from './components/CostCenterCharts';
 import Warnings from './components/Warnings';
 import StatusBar from './components/StatusBar';
 import ThemeToggle from './components/ThemeToggle';
-import PromoControl from './components/PromoControl';
 
 export default function App() {
   return (
@@ -21,7 +20,6 @@ export default function App() {
             <span className="brand-sub">FinOps · the meter</span>
           </div>
           <div className="topbar-actions">
-            <PromoControl />
             <ThemeToggle />
           </div>
         </div>
