@@ -197,7 +197,7 @@ def make_og(path, w=1200, h=630):
 
     # origin url, right-aligned on the legend row
     uf = _font_mono(21)
-    url = "webmaxru.github.io/finops-copilot"
+    url = "finops.isainative.dev"
     d.text((w - pad - d.textlength(url, font=uf), ly), url, font=uf, fill=MUTED)
 
     img.convert("RGB").save(path, "PNG")

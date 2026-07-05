@@ -18,7 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 OUT = os.path.join(ROOT, "public", "llms-full.txt")
 
-SITE = "https://webmaxru.github.io/finops-copilot/"
+SITE = "https://finops.isainative.dev/"
 REPO = "https://github.com/webmaxru/finops-copilot"
 
 # (repo-relative path, human title) in reading order

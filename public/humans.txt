@@ -5,11 +5,11 @@
 
 /* SITE */
   Name: Copilot Enterprise Spend Simulator
-  URL: https://webmaxru.github.io/finops-copilot/
+  URL: https://finops.isainative.dev/
   Purpose: Simulate monthly GitHub Copilot enterprise spend (Business + Enterprise
            seats) across multiple cost centers under usage-based (AI-credit) billing.
   Language: English (en)
   Standards: HTML5, WCAG 2.1 AA (target), Open Graph, schema.org JSON-LD, llmstxt.org
   Components: React, TypeScript, Vite, Recharts, Zustand
   Backend: none — runs entirely in the browser
-  Hosting: GitHub Pages
+  Hosting: GitHub Pages (custom domain finops.isainative.dev)

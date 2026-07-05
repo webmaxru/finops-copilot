@@ -62,7 +62,14 @@ A workflow is included at `.github/workflows/deploy.yml`:
 2. In the repo: **Settings → Pages → Build and deployment → Source = GitHub Actions**.
 3. The workflow builds and publishes `dist/`.
 
-`vite.config.ts` uses `base: './'`, so the built SPA works on any Pages project subpath (`https://<user>.github.io/<repo>/`) without hardcoding the repo name.
+### Custom domain
+
+The site is served at **`https://finops.isainative.dev/`**. Two things keep that working:
+
+- [`public/CNAME`](./public/CNAME) contains `finops.isainative.dev`. Vite copies it to `dist/`, so the custom domain persists on every GitHub Actions deploy — unlike branch-based publishing, an Actions workflow does **not** create this file for you.
+- A DNS **`CNAME`** record points `finops.isainative.dev` → `webmaxru.github.io` (the account's Pages host, without the repo name). Also add the domain under **Settings → Pages → Custom domain** and enable **Enforce HTTPS**.
+
+`vite.config.ts` uses `base: './'`, so asset URLs stay relative — the built SPA works at the custom-domain root **and** on the `https://<user>.github.io/<repo>/` fallback without hardcoding a path.
 
 ## Discovery & SEO (search + AI agents)
 
@@ -84,11 +91,12 @@ engines and well understood by AI agents. Static assets live in [`public/`](./pu
 | `llms.txt` / `llms-full.txt` | [llmstxt.org](https://llmstxt.org) discovery: a curated link index and the full concatenated README + `docs/` text for agents. |
 | `404.html` / `humans.txt` | Branded not-found page and site credits. |
 
-The **canonical origin** is `https://webmaxru.github.io/finops-copilot/`; update the
-absolute URLs in `index.html`, `robots.txt`, `sitemap.xml`, `llms.txt`, and the icon
-scripts if the site moves to a custom domain. Because this is a **GitHub Pages
-project site**, `robots.txt`/`sitemap.xml` ship at the project subpath (not the
-domain root) — the best available placement without a custom domain.
+The **canonical origin** is `https://finops.isainative.dev/` — a custom domain (see
+[Custom domain](#custom-domain) above). Because the site is served at the **domain
+root**, `robots.txt` and `sitemap.xml` sit at the root (`/robots.txt`, `/sitemap.xml`)
+where crawlers expect them. If the origin ever changes, update the absolute URLs in
+`index.html`, `robots.txt`, `sitemap.xml`, `llms.txt`, `humans.txt`, and the two
+`scripts/` generators (`SITE` and the og-image URL), then re-run the generators below.
 
 Raster images and the full-text file are **pre-generated and committed** (no
 build-time image toolchain). Regenerate them with:

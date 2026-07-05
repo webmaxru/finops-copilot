@@ -1,5 +1,5 @@
 # robots.txt — Copilot Enterprise Spend Simulator
-# https://webmaxru.github.io/finops-copilot/
+# https://finops.isainative.dev/
 #
 # Everything here is public, static, and safe to index. Search crawlers and AI
 # agents are welcome. To opt an AI agent OUT later, change its "Allow: /" to
@@ -52,4 +52,4 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
-Sitemap: https://webmaxru.github.io/finops-copilot/sitemap.xml
+Sitemap: https://finops.isainative.dev/sitemap.xml
