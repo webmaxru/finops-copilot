@@ -2,6 +2,7 @@ import { useSimResult } from '../state/store';
 import { fmtUsd } from '../model/format';
 import { blockedReasonEntries } from './blockReasons';
 import PromoControl from './PromoControl';
+import ScenarioShortcuts from './ScenarioShortcuts';
 
 /**
  * Hero instrument cluster: the projected bill as the headline, a bill-composition
@@ -68,6 +69,8 @@ export default function KpiCards() {
             </span>
           </div>
         </div>
+
+        <ScenarioShortcuts />
       </div>
 
       <div className="hero-readouts">

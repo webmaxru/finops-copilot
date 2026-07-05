@@ -44,6 +44,18 @@ Every non-USD slider shows its **USD equivalent** live.
 
 How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable while you scrub the timeline — use **Reshuffle usage** to resample).
 
+### Quick scenarios & shareable links
+
+Under the projected-bill meter, three **scenario shortcuts** load a preset of the existing controls in one click:
+
+- **Two cost centers, high and low usage** — the shipped default (balanced).
+- **Heavy adoption, no guardrails** — high usage with no hard stops, so metered spend runs past the budget and the projected bill exceeds the max.
+- **Locked-down budgets** — a low universal per-user budget, tight metered budgets with hard stops, and per-cost-center included-usage caps, so real demand is high but many users get blocked.
+
+The active preset is highlighted as a chip (the others are dotted links); changing any control de-highlights it. Scenarios only move existing sliders/toggles — they introduce no new billing rule.
+
+The **full configuration is encoded in the URL** (`?c=…`) and restored on load, so any setup is copy-to-share ready — the address bar always reflects the current inputs.
+
 ## Getting started
 
 ```bash

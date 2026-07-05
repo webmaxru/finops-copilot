@@ -67,6 +67,18 @@ Every non-USD slider shows its **USD equivalent** live.
 
 How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable while you scrub the timeline — use **Reshuffle usage** to resample).
 
+### Quick scenarios & shareable links
+
+Under the projected-bill meter, three **scenario shortcuts** load a preset of the existing controls in one click:
+
+- **Two cost centers, high and low usage** — the shipped default (balanced).
+- **Heavy adoption, no guardrails** — high usage with no hard stops, so metered spend runs past the budget and the projected bill exceeds the max.
+- **Locked-down budgets** — a low universal per-user budget, tight metered budgets with hard stops, and per-cost-center included-usage caps, so real demand is high but many users get blocked.
+
+The active preset is highlighted as a chip (the others are dotted links); changing any control de-highlights it. Scenarios only move existing sliders/toggles — they introduce no new billing rule.
+
+The **full configuration is encoded in the URL** (`?c=…`) and restored on load, so any setup is copy-to-share ready — the address bar always reflects the current inputs.
+
 ## Getting started
 
 ```bash
@@ -489,6 +501,8 @@ Keeping $s_g$ in the `max` lets the thumb stay usable if $L$ was lowered below t
 - **Add-cost-center clamp** — `state/store.ts` (`addCostCenter`): new CC `members = min(default, max(0, L − Σ members))`; the "Add" button is disabled when no seats remain (`CostCenterList.tsx`).
 - **Assignment summary** — `CostCenterList.tsx`: shows $\sum_{cc}s_{cc}$ / $L$ assigned and $\max(0, L-\sum s_{cc})$ unassigned (red if over).
 - **Promo toggle visibility** — `PromoControl.tsx`: the "Promo period" control renders (defaulting **on**) only while the promo window is open — `isPromoWindowOpen()`, i.e. before `PROMO_END` = **Sep 1 2026** (`defaults.ts`). Once the window closes the control is hidden and $\mathrm{promo}$ defaults to **off** (standard allowances). It sits to the right of the projected-bill readout (`KpiCards.tsx`). Window dates are **[Fact]** [B1]; auto-defaulting and hiding by date is an **[Assumption]** (UX).
+- **Scenario shortcuts** — `ScenarioShortcuts.tsx` (under the bill meter in `KpiCards.tsx`), presets in `src/model/scenarios.ts`: three one-click presets of the **existing** inputs — **Two cost centers, high and low usage** (the shipped default, `DEFAULT_INPUTS()`), **Heavy adoption, no guardrails**, and **Locked-down budgets**. A scenario only sets values already in range for existing controls, so it introduces **no** new billing rule or formula. The active preset is detected by comparing the identity-defining input fields, deliberately ignoring the PRNG `seed` (so Reshuffle keeps the highlight) and each cost center's machine-generated `id` (`matchScenarioId`). Presets are an **[Assumption]** (UX / illustration).
+- **Shareable configuration** — `state/shareConfig.ts`: the full `EnterpriseInputs` are (de)serialized to a versioned, URL-safe token (base64url of JSON, cost-center `id`s stripped and regenerated on load) carried in the `?c=` query parameter. The store hydrates from it on load (`readInputsFromLocation`) and mirrors the current inputs back to the address bar via `history.replaceState` (`writeInputsToLocation`), so any configuration is copy-to-share ready. Decoding clamps every value to its range, so a stale/malformed link can never crash the engine. This only transports inputs — it does **not** change any calculation. **[Assumption]** (UX).
 
 ---
 
