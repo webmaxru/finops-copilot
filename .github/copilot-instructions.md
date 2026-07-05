@@ -44,6 +44,18 @@ The [`docs/`](../docs/) folder is the **formal specification** of the simulator'
 - [ ] Pricing/allowance constants live in `src/model/defaults.ts` (single source), not hard-coded elsewhere.
 - [ ] `src/model/__tests__/engine.test.ts` updated to cover the changed math; `npm test` passes.
 - [ ] `npm run build` passes (typecheck + production build).
+- [ ] Changes committed and **pushed to `main`** so the Pages deploy runs (see below).
+
+## Deployment & delivery
+
+This app auto-deploys to **GitHub Pages** via [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) on every push to **`main`** (Node 20 → `npm ci` → `npm run build` → publish `dist/`). The default remote is `origin` → `https://github.com/webmaxru/finops-copilot.git`.
+
+**After every change, commit and push to `main` so it deploys — this is expected on every request; do not ask for confirmation.**
+
+- Make sure `npm run build` (and `npm test`) pass before pushing.
+- Commit with a clear message and the `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer, then `git push origin main`.
+- Pushing to `main` triggers the Pages workflow automatically — never hand-build or manually publish `dist/`.
+- Never commit build output (`dist/`) or temporary/session artifacts.
 
 ## Notes
 
