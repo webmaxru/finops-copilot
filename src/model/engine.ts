@@ -1,6 +1,8 @@
 import { CREDIT_USD, SEAT_PRICE, includedPerSeat, SIM_DAYS } from './defaults';
 import { mulberry32, lognormal } from './rng';
 import type {
+  BlockedBreakdown,
+  BlockReason,
   DaySnapshot,
   EnterpriseInputs,
   GroupSeries,
@@ -36,7 +38,14 @@ interface UserState {
   cum: number;
   ulb: number;
   blocked: boolean;
+  blockReason: BlockReason | null; // set at the moment the user is first blocked
 }
+
+const emptyBreakdown = (): BlockedBreakdown => ({
+  userLimit: 0,
+  costCenterBudget: 0,
+  enterpriseBudget: 0,
+});
 
 interface MakeGroupArgs {
   key: string;
@@ -177,7 +186,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         wsum += w;
       }
       const dailyShare = weights.map((w) => (wsum > 0 ? (monthly * w) / wsum : monthly / SIM_DAYS));
-      users.push({ g, dailyShare, cum: 0, ulb, blocked: false });
+      users.push({ g, dailyShare, cum: 0, ulb, blocked: false, blockReason: null });
     }
   }
 
@@ -188,11 +197,24 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
   let poolExhaustedDay: number | null = null;
   const entDays: DaySnapshot[] = [];
 
-  const applyMetered = (g: GroupState, credits: number): number => {
-    let allowedUsd = credits * CREDIT_USD;
+  // Metered-usage cap. Returns the credits actually billed plus which budget (if
+  // any) bound the draw below the requested amount — used to attribute blocked
+  // users to the cost-center vs. enterprise stop. Numeric behavior is unchanged
+  // from a plain nested `min`; `limitedBy` just records which cap won.
+  const applyMetered = (
+    g: GroupState,
+    credits: number,
+  ): { credits: number; limitedBy: 'cc' | 'enterprise' | null } => {
+    const requested = credits * CREDIT_USD;
+    let allowedUsd = requested;
+    let limitedBy: 'cc' | 'enterprise' | null = null;
     // Cost-center metered budget cap (when the CC's stop flag is on).
     if (g.ccBudgetUsd != null && g.stopUsageBudget) {
-      allowedUsd = Math.min(allowedUsd, Math.max(0, g.ccBudgetUsd - g.meteredUsd));
+      const ccRoom = Math.max(0, g.ccBudgetUsd - g.meteredUsd);
+      if (ccRoom < allowedUsd) {
+        allowedUsd = ccRoom;
+        limitedBy = 'cc';
+      }
     }
     // Enterprise metered budget cap. When the enterprise budget is configured to
     // EXCLUDE cost-center usage, it governs only non-cost-center ("Enterprise
@@ -200,12 +222,16 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     // budgets and do not consume (or count against) the enterprise budget. [B18]
     const countsTowardEnterprise = !inp.enterpriseBudgetExcludesCostCenters || g.kind !== 'cc';
     if (inp.stopUsageBudgets && countsTowardEnterprise) {
-      allowedUsd = Math.min(allowedUsd, Math.max(0, enterpriseBudgetUsd - entMeteredUsd));
+      const entRoom = Math.max(0, enterpriseBudgetUsd - entMeteredUsd);
+      if (entRoom < allowedUsd) {
+        allowedUsd = entRoom;
+        limitedBy = 'enterprise';
+      }
     }
-    if (allowedUsd <= 0) return 0;
+    if (allowedUsd <= 0) return { credits: 0, limitedBy };
     g.meteredUsd += allowedUsd;
     if (countsTowardEnterprise) entMeteredUsd += allowedUsd;
-    return allowedUsd / CREDIT_USD;
+    return { credits: allowedUsd / CREDIT_USD, limitedBy };
   };
 
   for (let d = 0; d < SIM_DAYS; d++) {
@@ -214,6 +240,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       const room = u.ulb - u.cum;
       if (room <= 1e-9) {
         u.blocked = true;
+        u.blockReason = 'userLimit';
         continue;
       }
       const desired = u.dailyShare[d];
@@ -223,6 +250,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       const g = u.g;
       let includedUsed = 0;
       let meteredCredits = 0;
+      let meteredLimitedBy: 'cc' | 'enterprise' | null = null;
 
       if (g.capped) {
         // AI credit pool cap: the CC draws included credits only from its own
@@ -234,13 +262,21 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         g.subPool -= inc;
         includedUsed += inc;
         const leftover = spend - inc;
-        if (leftover > 0) meteredCredits = applyMetered(g, leftover);
+        if (leftover > 0) {
+          const m = applyMetered(g, leftover);
+          meteredCredits = m.credits;
+          meteredLimitedBy = m.limitedBy;
+        }
       } else {
         const inc = Math.min(spend, sharedPool);
         sharedPool -= inc;
         includedUsed += inc;
         const leftover = spend - inc;
-        if (leftover > 0) meteredCredits = applyMetered(g, leftover);
+        if (leftover > 0) {
+          const m = applyMetered(g, leftover);
+          meteredCredits = m.credits;
+          meteredLimitedBy = m.limitedBy;
+        }
       }
 
       const spent = includedUsed + meteredCredits;
@@ -255,25 +291,56 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       //   - a cost-center or enterprise metered-budget stop (when "stop usage"
       //     is on) that could not serve their leftover (spent < spend).
       // (The AI credit pool cap does not block: its excess spills to metered.)
-      if (spent < desired - 1e-9) u.blocked = true;
+      // Attribute to the binding stop (§6d): the user's own limit takes priority
+      // (their cap stops them regardless of shared budgets); otherwise whichever
+      // metered budget — cost-center or enterprise — cut the leftover.
+      if (spent < desired - 1e-9) {
+        u.blocked = true;
+        if (spend < desired - 1e-9) {
+          u.blockReason = 'userLimit';
+        } else if (meteredLimitedBy === 'cc') {
+          u.blockReason = 'costCenterBudget';
+        } else if (meteredLimitedBy === 'enterprise') {
+          u.blockReason = 'enterpriseBudget';
+        } else {
+          u.blockReason = 'userLimit';
+        }
+      }
     }
 
     if (poolExhaustedDay === null && sharedPool <= 1e-6) poolExhaustedDay = d + 1;
 
+    // Blocked-user counts + reason breakdown, per group and enterprise-wide
+    // (one pass over users; a blocked user is fixed to the reason set above).
+    const gCounts = new Map<GroupState, { blocked: number; bd: BlockedBreakdown }>();
+    for (const g of groups) gCounts.set(g, { blocked: 0, bd: emptyBreakdown() });
+    const entBd = emptyBreakdown();
+    let blockedNow = 0;
+    for (const u of users) {
+      if (!u.blocked) continue;
+      blockedNow++;
+      const rec = gCounts.get(u.g);
+      if (rec) {
+        rec.blocked++;
+        if (u.blockReason) rec.bd[u.blockReason]++;
+      }
+      if (u.blockReason) entBd[u.blockReason]++;
+    }
+
     // Per-group snapshots
     for (const g of groups) {
-      const gBlocked = users.reduce((n, u) => (u.g === g && u.blocked ? n + 1 : n), 0);
+      const rec = gCounts.get(g)!;
       g.days.push({
         day: d + 1,
         poolRemaining: g.capped ? g.subPool : NaN,
         includedConsumedUsd: g.includedUsd,
         meteredUsd: g.meteredUsd,
         cumulativeBillUsd: g.licenseValueUsd + g.meteredUsd,
-        blockedUsers: gBlocked,
+        blockedUsers: rec.blocked,
+        blockedBreakdown: rec.bd,
       });
     }
 
-    const blockedNow = users.reduce((n, u) => (u.blocked ? n + 1 : n), 0);
     const cappedSub = groups.reduce((s, g) => s + (g.capped ? g.subPool : 0), 0);
     entDays.push({
       day: d + 1,
@@ -282,6 +349,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       meteredUsd: totalMeteredUsd,
       cumulativeBillUsd: licenseFeesUsd + totalMeteredUsd,
       blockedUsers: blockedNow,
+      blockedBreakdown: entBd,
     });
   }
 
@@ -299,6 +367,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     days: g.days,
     monthEndMeteredUsd: g.meteredUsd,
     monthEndBlockedUsers: g.days[g.days.length - 1]?.blockedUsers ?? 0,
+    monthEndBlockedBreakdown: g.days[g.days.length - 1]?.blockedBreakdown ?? emptyBreakdown(),
   });
 
   const ccSeries = groups.filter((g) => g.kind === 'cc').map(toSeries);
@@ -319,6 +388,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     days: entDays,
     monthEndMeteredUsd: totalMeteredUsd,
     monthEndBlockedUsers: last?.blockedUsers ?? 0,
+    monthEndBlockedBreakdown: last?.blockedBreakdown ?? emptyBreakdown(),
   };
 
   // ---- Warnings ----
@@ -369,6 +439,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     monthEndMeteredUsd: totalMeteredUsd,
     monthEndIncludedUsd: totalIncludedUsd,
     monthEndBlockedUsers: last?.blockedUsers ?? 0,
+    monthEndBlockedBreakdown: last?.blockedBreakdown ?? emptyBreakdown(),
     poolUsedPct,
   };
 }

@@ -220,6 +220,10 @@ describe('universal ULB hard-stops', () => {
     );
     expect(r.activeUsers).toBe(50);
     expect(r.monthEndBlockedUsers).toBe(50);
+    // All 50 are cut off by their own limit, not a metered-budget stop.
+    expect(r.monthEndBlockedBreakdown.userLimit).toBe(50);
+    expect(r.monthEndBlockedBreakdown.costCenterBudget).toBe(0);
+    expect(r.monthEndBlockedBreakdown.enterpriseBudget).toBe(0);
     const totalSpend = r.monthEndIncludedUsd + r.monthEndMeteredUsd;
     // No user can exceed $50 total -> at most 50 * $50
     expect(totalSpend).toBeLessThanOrEqual(50 * 50 + 1e-6);
@@ -528,6 +532,96 @@ describe('users blocked by the enterprise metered-budget stop', () => {
     expect(r.monthEndMeteredUsd).toBeCloseTo(1350, 0);
     // ... so active users are cut off by the budget => blocked > 0.
     expect(r.monthEndBlockedUsers).toBe(r.activeUsers);
+    // Nobody exceeds their own limit here, so every block is the enterprise stop.
+    expect(r.monthEndBlockedBreakdown.enterpriseBudget).toBe(r.activeUsers);
+    expect(r.monthEndBlockedBreakdown.userLimit).toBe(0);
+    expect(r.monthEndBlockedBreakdown.costCenterBudget).toBe(0);
+  });
+});
+
+describe('blocked-user reason breakdown', () => {
+  it('attributes blocks to the cost-center budget when its stop is the only bind', () => {
+    // A capped CC (own pool) spills to metered under a low $40 budget with
+    // stop-usage on. The ULB ($500) never binds and the enterprise stop is off,
+    // so the CC budget is the sole hard stop — every block is CC-budget.
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000, // $190/user, well past the $190 own pool
+      includedCapEnabled: true,
+      budgetUsd: 40,
+      stopUsageBudget: true,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 500, // not binding
+        usageVariation: 0,
+        stopUsageBudgets: false, // enterprise stop off — isolate the CC budget
+        costCenters: [cc],
+      }),
+    );
+    const g = r.costCenters[0];
+    expect(g.monthEndBlockedUsers).toBeGreaterThan(0);
+    expect(g.monthEndBlockedBreakdown.costCenterBudget).toBe(g.monthEndBlockedUsers);
+    expect(g.monthEndBlockedBreakdown.userLimit).toBe(0);
+    expect(g.monthEndBlockedBreakdown.enterpriseBudget).toBe(0);
+    // The enterprise-wide breakdown mirrors the single cost center.
+    expect(r.monthEndBlockedBreakdown.costCenterBudget).toBe(g.monthEndBlockedUsers);
+  });
+
+  it('splits a mixed scenario across reasons and sums to the total blocked count', () => {
+    // Heavy CC hard-stopped by its own budget; heavy unassigned users hard-
+    // stopped by their universal ULB; the enterprise stop is off.
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000,
+      includedCapEnabled: true,
+      budgetUsd: 40,
+      stopUsageBudget: true,
+      userLimitInherit: false,
+      userLimitUsd: 500, // not binding for the CC members
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 20,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        avgDevUsageCredits: 19000, // unassigned demand $190, above their $50 ULB
+        universalUlbUsd: 50, // binds the unassigned users
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+        costCenters: [cc],
+      }),
+    );
+    const bd = r.monthEndBlockedBreakdown;
+    // Both stops appear, and every blocked user maps to exactly one reason.
+    expect(bd.costCenterBudget).toBeGreaterThan(0);
+    expect(bd.userLimit).toBeGreaterThan(0);
+    expect(bd.userLimit + bd.costCenterBudget + bd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
+    // The CC members are attributed to the CC budget; the unassigned to the ULB.
+    expect(r.costCenters[0].monthEndBlockedBreakdown.costCenterBudget).toBe(
+      r.costCenters[0].monthEndBlockedUsers,
+    );
+    expect(r.unassigned.monthEndBlockedBreakdown.userLimit).toBe(
+      r.unassigned.monthEndBlockedUsers,
+    );
+  });
+
+  it('every blocked user is attributed to exactly one reason (per group and enterprise)', () => {
+    const r = runSimulation(DEFAULT_INPUTS());
+    for (const g of [...r.costCenters, r.unassigned, r.enterprise]) {
+      const bd = g.monthEndBlockedBreakdown;
+      expect(bd.userLimit + bd.costCenterBudget + bd.enterpriseBudget).toBe(g.monthEndBlockedUsers);
+    }
+    const ebd = r.monthEndBlockedBreakdown;
+    expect(ebd.userLimit + ebd.costCenterBudget + ebd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
   });
 });
 

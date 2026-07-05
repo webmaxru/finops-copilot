@@ -1093,6 +1093,62 @@ input[type='range'].range--ratio::-moz-range-thumb {
   font-weight: 600;
   padding-left: 12px;
 }
+.chart-tooltip__group + .chart-tooltip__group {
+  margin-top: 1px;
+}
+.chart-tooltip__subrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 16px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.chart-tooltip__subrow .val {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-weight: 600;
+  padding-left: 12px;
+}
+.swatch--sm {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-2xs);
+  flex: none;
+}
+
+/* Blocked-users reason distribution (global KPI readout) */
+.reason-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+.reason-list__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.reason-list__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reason-list__count {
+  margin-left: auto;
+  color: var(--text);
+  font-weight: 600;
+  padding-left: 10px;
+}
 
 /* --- Warnings ----------------------------------------------------------- */
 .status-ok {

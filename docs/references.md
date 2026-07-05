@@ -31,6 +31,10 @@ Every billing rule in these docs is a **[Fact]** backed by an official GitHub so
 | Product & SKU names (`copilot_ai_credits`, `ai_credits` bundle, etc.) | https://docs.github.com/en/enterprise-cloud@latest/billing/reference/product-and-sku-names |
 | Budget sizing / forecasting guidance | https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/optimizing-your-budget-configuration |
 
+### Blocked-user reason breakdown — **[Derived]** (no new source)
+
+The simulator splits blocked users by the **binding hard stop** — `userLimit`, `costCenterBudget`, or `enterpriseBudget` (see [`formulas.md`](./formulas.md) §6d, §7.1). This introduces **no new billing rule**: the three stops are the already-cited facts — user-level budgets always hard-stop [B4][B16], and cost-center/enterprise metered-budget "stop usage" flags hard-stop the metered leg [B4][B6]. Which of them is reported as *the* reason (user limit first, then whichever budget `ApplyMetered` found binding) is a **[Derived]** attribution / modeling choice, surfaced in chart tooltips and the global "Blocked users" KPI. Validated in `src/model/__tests__/engine.test.ts` ("blocked-user reason breakdown").
+
 ## Full research report
 
 The exhaustive source-of-truth research (with quotes and freshness notes) that these facts were distilled from is retained in the session workspace:

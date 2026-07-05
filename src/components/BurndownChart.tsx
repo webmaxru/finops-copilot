@@ -9,6 +9,7 @@ function toPoint(x: DaySnapshot): SpendPoint {
     meteredUsd: x.meteredUsd,
     billUsd: x.cumulativeBillUsd,
     blocked: x.blockedUsers,
+    blockedBreakdown: x.blockedBreakdown,
   };
 }
 

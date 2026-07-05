@@ -41,6 +41,23 @@ export interface EnterpriseInputs {
   costCenters: CostCenter[];
 }
 
+/**
+ * Why a user was cut off (the binding hard stop at the moment they were first
+ * blocked). Every blocked user is attributed to exactly one reason, so a
+ * breakdown always sums to the total blocked count.
+ *   - `userLimit`         — their per-user limit (universal/CC ULB or power-user override)
+ *   - `costCenterBudget`  — a cost-center metered-budget stop
+ *   - `enterpriseBudget`  — the enterprise metered-budget stop
+ */
+export type BlockReason = 'userLimit' | 'costCenterBudget' | 'enterpriseBudget';
+
+/** Blocked-user counts split by the reason they were cut off (§6d, §7.1). */
+export interface BlockedBreakdown {
+  userLimit: number;
+  costCenterBudget: number;
+  enterpriseBudget: number;
+}
+
 /** One day's cumulative state for a group. */
 export interface DaySnapshot {
   day: number; // 1..30
@@ -49,6 +66,7 @@ export interface DaySnapshot {
   meteredUsd: number; // cumulative metered $
   cumulativeBillUsd: number; // license value + metered
   blockedUsers: number; // cumulative users who hit their limit
+  blockedBreakdown: BlockedBreakdown; // cumulative blocked users split by reason
 }
 
 export type GroupKind = 'enterprise' | 'cc' | 'unassigned';
@@ -67,6 +85,7 @@ export interface GroupSeries {
   days: DaySnapshot[]; // length 30
   monthEndMeteredUsd: number;
   monthEndBlockedUsers: number;
+  monthEndBlockedBreakdown: BlockedBreakdown; // month-end blocked users split by reason
 }
 
 export interface SimResult {
@@ -86,5 +105,6 @@ export interface SimResult {
   monthEndMeteredUsd: number;
   monthEndIncludedUsd: number;
   monthEndBlockedUsers: number;
+  monthEndBlockedBreakdown: BlockedBreakdown; // enterprise-wide blocked users split by reason
   poolUsedPct: number; // 0..1 share of the included pool consumed by day 30
 }

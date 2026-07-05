@@ -12,6 +12,8 @@ import {
   YAxis,
 } from 'recharts';
 import { fmtUsd } from '../model/format';
+import type { BlockedBreakdown } from '../model/types';
+import { blockedReasonEntries } from './blockReasons';
 
 export type SpendPoint = {
   day: number;
@@ -19,6 +21,7 @@ export type SpendPoint = {
   meteredUsd: number;
   billUsd: number;
   blocked: number;
+  blockedBreakdown?: BlockedBreakdown;
 };
 
 export type RefLine = { y: number; label: string; color: string };
@@ -37,19 +40,37 @@ interface SpendChartProps {
 
 const BLOCKED_NAME = 'Blocked users';
 
-/** Ledger-style tooltip: one mono row per series with a color swatch. */
+/**
+ * Ledger-style tooltip: one mono row per series with a color swatch. The blocked
+ * row expands into a "why" breakdown (user limit / CC budget / enterprise
+ * budget) so hard-stop reasons are visible on hover without extra chart lines.
+ */
 function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) {
   if (!active || !payload || payload.length === 0) return null;
+  const breakdown = payload.find((p) => p.name === BLOCKED_NAME)?.payload?.blockedBreakdown as
+    | BlockedBreakdown
+    | undefined;
+  const reasons = blockedReasonEntries(breakdown);
   return (
     <div className="chart-tooltip">
       <div className="chart-tooltip__day">Day {label}</div>
       {payload.map((p) => (
-        <div className="chart-tooltip__row" key={String(p.dataKey)}>
-          <span className="swatch" style={{ background: p.color }} />
-          <span>{p.name}</span>
-          <span className="val">
-            {p.name === BLOCKED_NAME ? Math.round(Number(p.value)) : fmtUsd(Number(p.value))}
-          </span>
+        <div className="chart-tooltip__group" key={String(p.dataKey)}>
+          <div className="chart-tooltip__row">
+            <span className="swatch" style={{ background: p.color }} />
+            <span>{p.name}</span>
+            <span className="val">
+              {p.name === BLOCKED_NAME ? Math.round(Number(p.value)) : fmtUsd(Number(p.value))}
+            </span>
+          </div>
+          {p.name === BLOCKED_NAME &&
+            reasons.map((r) => (
+              <div className="chart-tooltip__subrow" key={r.key}>
+                <span className="swatch swatch--sm" style={{ background: r.color }} />
+                <span>{r.label}</span>
+                <span className="val">{r.count}</span>
+              </div>
+            ))}
         </div>
       ))}
     </div>

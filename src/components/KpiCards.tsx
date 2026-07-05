@@ -1,5 +1,6 @@
 import { useSimResult } from '../state/store';
 import { fmtUsd } from '../model/format';
+import { blockedReasonEntries } from './blockReasons';
 import PromoControl from './PromoControl';
 
 /**
@@ -19,6 +20,10 @@ export default function KpiCards() {
   const meteredW = (sim.monthEndMeteredUsd / scale) * 100;
   const ceilingPos = Math.min(100, (sim.maxBillUsd / scale) * 100);
   const over = sim.monthEndBillUsd > sim.maxBillUsd + 0.5;
+
+  // Why the blocked users were cut off (nonzero reasons only) — shown as a
+  // distribution under the headline count instead of extra chart lines.
+  const blockedReasons = blockedReasonEntries(sim.monthEndBlockedBreakdown);
 
   return (
     <div className="hero-instrument">
@@ -81,7 +86,19 @@ export default function KpiCards() {
           <span className={`readout__value${sim.monthEndBlockedUsers > 0 ? ' is-alert' : ''}`}>
             {sim.monthEndBlockedUsers}/{sim.activeUsers}
           </span>
-          <span className="readout__note">hit a hard stop this month</span>
+          {blockedReasons.length > 0 ? (
+            <ul className="reason-list" aria-label="Blocked users by reason">
+              {blockedReasons.map((r) => (
+                <li className="reason-list__item" key={r.key}>
+                  <span className="swatch swatch--sm" style={{ background: r.color }} />
+                  <span className="reason-list__label">{r.label}</span>
+                  <span className="reason-list__count">{r.count}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span className="readout__note">hit a hard stop this month</span>
+          )}
         </div>
       </div>
     </div>
