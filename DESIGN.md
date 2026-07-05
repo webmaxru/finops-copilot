@@ -20,19 +20,19 @@ colors:
   limit: "#fb6a78"
 typography:
   display:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans Condensed, IBM Plex Sans, system-ui, sans-serif"
     fontSize: "clamp(2.75rem, 7vw, 4.25rem)"
     fontWeight: 600
     lineHeight: 0.95
     letterSpacing: "-0.02em"
   headline:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans Condensed, IBM Plex Sans, system-ui, sans-serif"
     fontSize: "1.5rem"
     fontWeight: 600
     lineHeight: 1.1
     letterSpacing: "-0.01em"
   title:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontFamily: "IBM Plex Sans Condensed, IBM Plex Sans, system-ui, sans-serif"
     fontSize: "0.94rem"
     fontWeight: 600
     lineHeight: 1.2
@@ -50,6 +50,8 @@ typography:
     lineHeight: 1.4
     letterSpacing: "0.16em"
 rounded:
+  2xs: "3px"
+  xs: "6px"
   sm: "9px"
   md: "14px"
   lg: "18px"
@@ -107,7 +109,7 @@ It explicitly rejects three things. It is **not a generic SaaS dashboard** — n
 - Deep-ink navy cockpit with indigo-tinted neutrals; depth from tonal layering, not heavy shadow.
 - A fixed, information-coded five-color semantic system (pool / metered / limit / Business / Enterprise).
 - Ledger-grade tabular-mono numerals for every value that changes during the simulation.
-- Space Grotesk (display) · IBM Plex Sans (UI) · IBM Plex Mono (data) — a three-role pairing on a real contrast axis.
+- IBM Plex Sans Condensed (display) · IBM Plex Sans (UI) · IBM Plex Mono (data) — one engineered superfamily separated by width and weight.
 - One signature component — the bill-composition meter — that everything else supports.
 
 ## 2. Colors
@@ -138,21 +140,21 @@ A deep-ink navy base carrying a five-hue semantic system where every color has o
 
 ## 3. Typography
 
-**Display Font:** Space Grotesk (fallback system-ui, sans-serif)
+**Display Font:** IBM Plex Sans Condensed (fallback IBM Plex Sans, system-ui, sans-serif)
 **Body/UI Font:** IBM Plex Sans (fallback system-ui, -apple-system, Segoe UI, Roboto)
 **Data/Label Font:** IBM Plex Mono (fallback ui-monospace, Menlo)
 
-**Character:** A three-role pairing on genuine contrast axes: a geometric grotesk for display weight and precision, a humanist sans for calm UI legibility, and a monospace for tabular data. They read as one instrument because all three are engineered, not ornamental.
+**Character:** A three-role system from the IBM Plex superfamily, separated by width and weight: a condensed sans for display weight and precision, the normal-width sans for calm UI legibility, and a monospace for tabular data. They read as one instrument because all three are engineered, not ornamental.
 
 ### Hierarchy
-- **Display** (Space Grotesk 600, `clamp(44px, 7vw, 68px)`, lh 0.95, ls −0.02em, tabular-nums): The headline bill readout only. This is the gauge's needle.
-- **Headline** (Space Grotesk 600, 24px, lh 1.1, tabular-nums): Secondary readouts (max bill, pool-exhausted day, blocked count).
-- **Title** (Space Grotesk 600, 15–15.5px, ls −0.01em): App/brand name and section titles (each prefixed by a leading gradient tick).
+- **Display** (IBM Plex Sans Condensed 600, `clamp(44px, 7vw, 68px)`, lh 0.95, ls −0.02em, tabular-nums): The headline bill readout only. This is the gauge's needle.
+- **Headline** (IBM Plex Sans Condensed 600, 24px, lh 1.1, tabular-nums): Secondary readouts (max bill, pool-exhausted day, blocked count).
+- **Title** (IBM Plex Sans Condensed 600, 15–15.5px, ls −0.01em): App/brand name and section titles (each prefixed by a leading gradient tick).
 - **Body** (IBM Plex Sans 400, 14px base, lh 1.5): UI copy and captions; prose capped at ~62ch (see `.hero-slogan`).
 - **Label** (IBM Plex Mono 500, 10.5–11px, ls 0.12–0.16em, uppercase): Readout labels, meter scales, status chips, and the single hero eyebrow.
 
 ### Named Rules
-**The Tabular-Numeral Rule.** Any figure that changes during the simulation uses `font-variant-numeric: tabular-nums` in IBM Plex Mono or Space Grotesk, so digits hold their column and never jitter while scrubbing the timeline.
+**The Tabular-Numeral Rule.** Any figure that changes during the simulation uses `font-variant-numeric: tabular-nums` in IBM Plex Mono or IBM Plex Sans Condensed, so digits hold their column and never jitter while scrubbing the timeline.
 
 **The One-Eyebrow Rule.** The mono uppercase eyebrow is a deliberate, singular instrument label in the hero — plus mono readout labels. It is *not* multiplied above every section; section identity comes from the leading gradient tick, not stacked kickers.
 
@@ -189,7 +191,7 @@ Hybrid, but **tonal-layering first.** Depth comes primarily from the surface ram
 - **Editable name field:** borderless until hover/focus, then `--panel-2` fill with an indigo border — inline editing, no modal.
 
 ### Navigation
-- **Topbar:** sticky, 58px, translucent blurred base, 1px soft bottom border. Brand mark is a 30px indigo→violet gradient tile; brand name (Space Grotesk) truncates with ellipsis; a mono uppercase sub-label sits beside it. Actions (promo, theme) are pill buttons, right-aligned; sub-label and button labels hide under 560px.
+- **Topbar:** sticky, 58px, translucent blurred base, 1px soft bottom border. Brand mark is a 30px indigo→violet gradient tile; brand name (IBM Plex Sans Condensed) truncates with ellipsis; a mono uppercase sub-label sits beside it. Actions (promo, theme) are pill buttons, right-aligned; sub-label and button labels hide under 560px.
 
 ### Status chip
 - Full-pill mono chip on a translucent panel with a **pulsing teal dot** (2.4s ease-in-out) signaling a live simulation; over-limit state recolors to coral.

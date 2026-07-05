@@ -21,3 +21,6 @@ npm-debug.log*
 
 # APM dependencies
 apm_modules/
+
+# impeccable detector hook cache (local runtime artifact)
+.impeccable/hook.cache.json
