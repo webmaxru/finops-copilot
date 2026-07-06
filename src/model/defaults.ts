@@ -36,10 +36,11 @@ export const SIM_DAYS = 30;
 export const DEFAULT_TOTAL_LICENSES = 100;
 
 /**
- * Enterprise metered-budget defaults, derived from the default scenario at
- * usageVariation = 0 with standard allowances (promo off — these anchor the
- * durable post-promo regime; see docs/formulas.md §5.2). Validated against a
- * v = 0 reference run in engine.test.ts.
+ * Enterprise metered-budget defaults, derived from the default enterprise-wide
+ * inputs with **no cost centers** (all active users at the enterprise average
+ * usage) at usageVariation = 0 with standard allowances (promo off — these
+ * anchor the durable post-promo regime; see docs/formulas.md §5.2). Validated
+ * against a v = 0, `costCenters: []` reference run in engine.test.ts.
  *   default          = expected monthly metered spend at defaults (standard)  => $2,620
  *   max @ default L  = 5 x total active-developer monthly usage ($5,120)   => $25,600
  * The slider max scales linearly with total users (licenses) so larger orgs
@@ -143,6 +144,7 @@ export function makeDefaultCostCenter(index: number): CostCenter {
     budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
     stopUsageBudget: true,
     includedCapEnabled: false,
+    includedCapBlock: false, // default = overage (spill to metered), not block
   };
 }
 

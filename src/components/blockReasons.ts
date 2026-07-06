@@ -13,6 +13,7 @@ export const BLOCK_REASON_META: {
   color: string;
 }[] = [
   { key: 'userLimit', label: 'User limit', short: 'user limit', color: 'var(--limit)' },
+  { key: 'costCenterPool', label: 'CC pool cap', short: 'CC pool cap', color: 'var(--pool)' },
   { key: 'costCenterBudget', label: 'Cost-center budget', short: 'CC budget', color: 'var(--metered)' },
   { key: 'enterpriseBudget', label: 'Enterprise budget', short: 'ent budget', color: 'var(--brand)' },
 ];

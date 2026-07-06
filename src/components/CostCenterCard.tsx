@@ -165,11 +165,23 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
         onChange={(v) => setPatch({ includedCapEnabled: v })}
         caption={
           <>
-            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}); beyond
-            it, usage continues as metered (subject to budgets)
+            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}) — the cost
+            center draws only its own licenses&apos; included credits
           </>
         }
       />
+      {cc.includedCapEnabled && (
+        <Toggle
+          label="Block at the cap (no overage)"
+          checked={cc.includedCapBlock}
+          onChange={(v) => setPatch({ includedCapBlock: v })}
+          caption={
+            cc.includedCapBlock
+              ? 'At the cap, members are blocked (hard stop) — no metered overage.'
+              : 'At the cap, usage continues as metered overage (subject to budgets), if the enterprise allows overages.'
+          }
+        />
+      )}
 
       <div className="cc-result">
         This month: metered {fmtUsd(series?.monthEndMeteredUsd ?? 0)} · blocked{' '}

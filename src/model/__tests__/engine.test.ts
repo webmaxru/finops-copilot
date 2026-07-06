@@ -322,9 +322,9 @@ describe('enterprise budget that excludes cost-center usage', () => {
 
 describe('cost-center AI credit pool (included-usage cap)', () => {
   it('limits included draw to the CC own licenses and spills the rest to metered', () => {
-    // No per-CC block/overage control exists; an enabled AI credit pool caps the
-    // CC included draw at its own funded credits and the excess continues as
-    // metered (overages assumed enabled). Budgets set high so they do not bind.
+    // Overage mode (the default): an enabled AI credit pool caps the CC included
+    // draw at its own funded credits and, because includedCapBlock is false, the
+    // excess continues as metered overage. Budgets set high so they do not bind. [B13]
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
@@ -348,6 +348,49 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
     // Own pool = 10*1900 = 19,000 cr = $190 (included cap); the rest spills to metered.
     expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
     expect(r.monthEndMeteredUsd).toBeCloseTo(1710, 0);
+  });
+
+  it('blocks members at the cap when the CC is set to block (no overage)', () => {
+    // Same heavy CC, but includedCapBlock=true: at its own-pool cap members are
+    // blocked (a hard stop) instead of spilling to metered, and the block is
+    // attributed to the CC pool cap (costCenterPool), not a budget. [B13][B4]
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000, // demand $1,900 >> the $190 own pool
+      includedCapEnabled: true,
+      includedCapBlock: true,
+      budgetUsd: 5000,
+      stopUsageBudget: true,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 500, // not binding
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        costCenters: [cc],
+      }),
+    );
+    const g = r.costCenters[0];
+    // Own pool = $190 included; block mode => no metered overage at all.
+    expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
+    expect(g.monthEndMeteredUsd).toBeCloseTo(0, 6);
+    // Every active member has unmet demand at the cap => all blocked, attributed
+    // to the CC pool cap (not their own limit, the CC budget, or the ent budget).
+    expect(g.monthEndBlockedUsers).toBe(g.activeUsers);
+    expect(g.monthEndBlockedBreakdown.costCenterPool).toBe(g.activeUsers);
+    expect(g.monthEndBlockedBreakdown.costCenterBudget).toBe(0);
+    expect(g.monthEndBlockedBreakdown.userLimit).toBe(0);
+    expect(g.monthEndBlockedBreakdown.enterpriseBudget).toBe(0);
+    // The breakdown always sums to the blocked count.
+    const bd = r.monthEndBlockedBreakdown;
+    expect(bd.userLimit + bd.costCenterPool + bd.costCenterBudget + bd.enterpriseBudget).toBe(
+      r.monthEndBlockedUsers,
+    );
   });
 
   it('a capped high-usage CC does not drain a low-usage CC included pool', () => {

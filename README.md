@@ -1,6 +1,6 @@
 # Copilot Enterprise Spend Simulator
 
-A **static web app** that simulates monthly **GitHub Copilot** spend for enterprises using **Copilot Business** and **Copilot Enterprise** seats — with a focus on **multiple cost centers**. Adjust a handful of smart-default sliders, add/remove cost centers, then **play an animated day 1→30 simulation** that shows the shared **included credit pool draining** and **metered (overage) cost growing until it hits your limits**.
+A **static web app** that simulates monthly **GitHub Copilot** spend for enterprises using **Copilot Business** and **Copilot Enterprise** seats — with a focus on **multiple cost centers**. Adjust a handful of smart-default sliders, add/remove cost centers, and read the **day 1→30 burndown** showing the shared **included credit pool draining** and **metered (overage) cost growing until it hits your limits** — with one-click **scenario** shortcuts and a shareable configuration URL.
 
 Built with React + TypeScript + Vite. No backend — it runs entirely in the browser.
 
@@ -26,7 +26,7 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
 | Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
-| Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits (block or overage) — *API-only today* |
+| Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits; at the cap you choose **block or overage** per cost center — *API-only today* |
 | Stop-usage toggle | Real-world default is **OFF** (alerts only); on here so you can model hard caps |
 | Code completions / next-edit | **Not billed** — excluded from the model |
 
@@ -36,7 +36,7 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 **Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), an **"enterprise budget excludes cost-center usage"** toggle, promo-allowances toggle, stop-usage toggle.
 
-**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; excess spills to metered).
+**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; at the cap, choose **block** (hard stop) or **overage** (spill to metered), matching GitHub's per-cost-center choice).
 
 Every non-USD slider shows its **USD equivalent** live.
 

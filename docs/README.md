@@ -2,7 +2,7 @@
 
 Formal reference for **every quantity, formula, and dependency** used by the spend simulator, plus the **official GitHub documentation** that justifies each billing rule. Written to be relied on for further development.
 
-> Code links in these documents are pinned to commit **`a033e79`**. If you change the engine, update the corresponding formula and its line reference here.
+> Code links in these documents use line numbers for `src/model/**` on `main`. If you change the engine, update the corresponding formula and its line reference here (the golden rule: `docs/` and the calculations move together).
 
 ## Documents
 

@@ -80,14 +80,15 @@ export const SCENARIOS: Scenario[] = [
     id: 'locked-down',
     name: 'Locked-down budgets',
     description:
-      'Aggressive cost control: a low universal per-user budget, tight metered budgets with hard stops, '
-      + "and each cost center capped to its own licenses' credits — so real demand is high but many users get blocked.",
+      'Strict chargeback boundaries: each cost center is capped to its own licenses\u2019 credits and set to '
+      + 'BLOCK at that cap (no overage), so no team can overspend the shared pool — with tight metered budgets '
+      + 'and hard stops behind them. Most blocks are at the cost-center pool cap.',
     make: () => ({
       ...DEFAULT_INPUTS(),
       activePct: 0.85,
       avgDevUsageCredits: 8_000,
       usageVariation: 0.5,
-      universalUlbUsd: 40, // binding per-user hard stop
+      universalUlbUsd: 150, // non-binding vs the CC targets, so the pool cap is the binding stop
       enterpriseLimitUsd: 1_500,
       powerUsers: 5,
       stopUsageBudgets: true,
@@ -95,10 +96,12 @@ export const SCENARIOS: Scenario[] = [
       costCenters: [
         costCenter(1, 'High usage cost center', 30, 12_000, {
           includedCapEnabled: true,
+          includedCapBlock: true,
           stopUsageBudget: true,
         }),
         costCenter(2, 'Low usage cost center', 70, 6_000, {
           includedCapEnabled: true,
+          includedCapBlock: true,
           stopUsageBudget: true,
         }),
       ],
@@ -134,6 +137,7 @@ function canonicalKey(i: EnterpriseInputs): string {
       budgetUsd: c.budgetUsd,
       stopUsageBudget: c.stopUsageBudget,
       includedCapEnabled: c.includedCapEnabled,
+      includedCapBlock: c.includedCapBlock,
     })),
   });
 }

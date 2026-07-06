@@ -62,6 +62,7 @@ describe('shareConfig serialization', () => {
     expect(restored.seed).toBe(original.seed);
     expect(restored.costCenters).toHaveLength(original.costCenters.length);
     expect(restored.costCenters[0].includedCapEnabled).toBe(true);
+    expect(restored.costCenters[0].includedCapBlock).toBe(true); // locked-down blocks at the cap
     // ids are volatile and regenerated on decode
     expect(restored.costCenters[0].id).not.toBe(original.costCenters[0].id);
     expect(restored.costCenters[0].id).toBeTruthy();
