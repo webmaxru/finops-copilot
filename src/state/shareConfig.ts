@@ -102,7 +102,6 @@ function toCostCenter(raw: unknown, index: number): CostCenter {
     budgetUsd: Math.max(RANGES.ccBudgetUsd.min, num(c.budgetUsd, 0)),
     stopUsageBudget: bool(c.stopUsageBudget, true),
     includedCapEnabled: bool(c.includedCapEnabled, false),
-    includedCapBlock: bool(c.includedCapBlock, false),
   };
 }
 

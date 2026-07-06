@@ -19,16 +19,8 @@ export interface CostCenter {
   budgetUsd: number;
   /** Hard-stop the CC metered budget when reached. */
   stopUsageBudget: boolean;
-  /** Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`): limit this CC's included draw to its own licenses' credits. */
+  /** Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`): limit this CC's included draw to its own licenses' credits. Beyond the cap, usage continues as metered (overage) or stops, per the enterprise "AI credit paid usage" policy — there is no per-cost-center block/overage control. [B13][B8] */
   includedCapEnabled: boolean;
-  /**
-   * Behavior when the included-usage cap is reached (GitHub's per-cost-center
-   * choice): `true` = **block** further usage (hard stop at the cap); `false` =
-   * **overage** — usage continues as metered (subject to budgets), assuming the
-   * enterprise "AI credit paid usage" policy allows overages. Only meaningful
-   * when `includedCapEnabled`. [B13][B4]
-   */
-  includedCapBlock: boolean;
 }
 
 /** All inputs that drive the simulation (the engine is a pure fn of this). */
@@ -54,16 +46,14 @@ export interface EnterpriseInputs {
  * blocked). Every blocked user is attributed to exactly one reason, so a
  * breakdown always sums to the total blocked count.
  *   - `userLimit`         — their per-user limit (universal/CC ULB or power-user override)
- *   - `costCenterPool`    — a cost-center AI-credit-pool cap set to **block** at the cap
  *   - `costCenterBudget`  — a cost-center metered-budget stop
  *   - `enterpriseBudget`  — the enterprise metered-budget stop
  */
-export type BlockReason = 'userLimit' | 'costCenterPool' | 'costCenterBudget' | 'enterpriseBudget';
+export type BlockReason = 'userLimit' | 'costCenterBudget' | 'enterpriseBudget';
 
 /** Blocked-user counts split by the reason they were cut off (§6d, §7.1). */
 export interface BlockedBreakdown {
   userLimit: number;
-  costCenterPool: number;
   costCenterBudget: number;
   enterpriseBudget: number;
 }

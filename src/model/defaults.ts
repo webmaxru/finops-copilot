@@ -144,7 +144,6 @@ export function makeDefaultCostCenter(index: number): CostCenter {
     budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
     stopUsageBudget: true,
     includedCapEnabled: false,
-    includedCapBlock: false, // default = overage (spill to metered), not block
   };
 }
 
