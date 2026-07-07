@@ -20,6 +20,7 @@ import {
   ccBudgetMaxUsd,
   isPromoWindowOpen,
   PROMO_END,
+  CREDIT_USD,
 } from '../defaults';
 import type { EnterpriseInputs } from '../types';
 
@@ -435,6 +436,49 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
     };
     expect(total(0)).toBeCloseTo(1000, 0); // 10 * $100
     expect(total(1)).toBeCloseTo(250, 0); // 10 * $25
+  });
+
+  it('pool-left chart identity: capped CC poolRemaining == poolCredits - includedConsumed (formulas.md §7.3)', () => {
+    // The per-group charts plot "Included pool left" = poolCredits*c - includedConsumedUsd.
+    // For a capped CC this must coincide with the engine's real sub-pool (poolRemaining);
+    // for a shared-pool group poolRemaining is NaN but the derived pool-left stays finite.
+    const capped = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 4000, // > its 1900/seat funded pool, so the sub-pool actually drains
+      userLimitInherit: false,
+      userLimitUsd: 1000, // not binding
+      includedCapEnabled: true,
+      budgetUsd: 1e9,
+      stopUsageBudget: false,
+    };
+    const shared = { ...capped, name: 'Shared', includedCapEnabled: false };
+    const r = runSimulation(
+      base({
+        totalLicenses: 40, // 10 + 10 in CCs, 20 unassigned (also shares the pool)
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        enterpriseLimitUsd: 1e9,
+        costCenters: [capped, shared],
+      }),
+    );
+    const cappedG = r.costCenters[0];
+    const cappedPoolUsd = cappedG.poolCredits * CREDIT_USD;
+    for (const day of cappedG.days) {
+      expect(Number.isNaN(day.poolRemaining)).toBe(false);
+      expect(day.poolRemaining * CREDIT_USD).toBeCloseTo(cappedPoolUsd - day.includedConsumedUsd, 6);
+    }
+    // Shared-pool group: raw per-group poolRemaining is NaN (it shares the pool),
+    // yet the value the chart plots (poolCredits*c - includedConsumedUsd) is finite.
+    const sharedG = r.costCenters[1];
+    const sharedPoolUsd = sharedG.poolCredits * CREDIT_USD;
+    for (const day of sharedG.days) {
+      expect(Number.isNaN(day.poolRemaining)).toBe(true);
+      expect(Number.isFinite(sharedPoolUsd - day.includedConsumedUsd)).toBe(true);
+    }
   });
 });
 

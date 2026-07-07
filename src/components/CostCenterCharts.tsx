@@ -1,17 +1,24 @@
 import { useSimResult, useStore } from '../state/store';
+import { CREDIT_USD } from '../model/defaults';
 import { fmtInt, fmtUsd } from '../model/format';
 import type { DaySnapshot, GroupSeries } from '../model/types';
 import SpendChart, { type SpendPoint } from './SpendChart';
 
-function toPoint(x: DaySnapshot): SpendPoint {
-  return {
+// "Included pool left" for a group = its own funded included allowance
+// (poolCredits · CREDIT_USD) minus what it has consumed so far — the depleting
+// counterpart to the enterprise burndown. For a capped cost center this is
+// exactly its sub-pool remaining; for a group that shares the enterprise pool it
+// is the funded-share remaining and may dip below 0 when the group draws on the
+// shared pool beyond its own seats' credits (the "shared-pool drain" warning).
+function toPoint(poolLeftStartUsd: number) {
+  return (x: DaySnapshot): SpendPoint => ({
     day: x.day,
-    includedUsd: x.includedConsumedUsd,
+    includedUsd: poolLeftStartUsd - x.includedConsumedUsd,
     meteredUsd: x.meteredUsd,
     billUsd: x.cumulativeBillUsd,
     blocked: x.blockedUsers,
     blockedBreakdown: x.blockedBreakdown,
-  };
+  });
 }
 
 export default function CostCenterCharts() {
@@ -42,8 +49,8 @@ export default function CostCenterCharts() {
               </div>
               <div className="chart-frame">
                 <SpendChart
-                  data={g.days.map(toPoint)}
-                  includedName="Included used ($)"
+                  data={g.days.map(toPoint(g.poolCredits * CREDIT_USD))}
+                  includedName="Included pool left ($)"
                   activeUsers={g.activeUsers}
                   height={230}
                   refLines={

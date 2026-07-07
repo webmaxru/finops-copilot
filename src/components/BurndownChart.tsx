@@ -1,11 +1,12 @@
 import { useSimResult } from '../state/store';
+import { CREDIT_USD } from '../model/defaults';
 import type { DaySnapshot } from '../model/types';
 import SpendChart, { type SpendPoint } from './SpendChart';
 
 function toPoint(x: DaySnapshot): SpendPoint {
   return {
     day: x.day,
-    includedUsd: x.poolRemaining * 0.01,
+    includedUsd: x.poolRemaining * CREDIT_USD,
     meteredUsd: x.meteredUsd,
     billUsd: x.cumulativeBillUsd,
     blocked: x.blockedUsers,

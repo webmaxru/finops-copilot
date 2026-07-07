@@ -247,6 +247,16 @@ $$\text{poolExhaustedDay}=\min\{d: P_{\text{shared}}\le 0\}\ \text{or null (neve
 $$\text{poolUsedPct}=\min\!\Big(1,\ \frac{\mathrm{In}_{\text{tot}}}{P\cdot c}\Big)\ \ (\text{engine.ts:380})$$
 Month-end values (`engine.ts:442-446`, read from day $D$'s snapshot): $\text{monthEndBill}=F+\mathrm{Me}_{\text{tot}}$, $\text{monthEndMetered}=\mathrm{Me}_{\text{tot}}$, $\text{monthEndIncluded}=\mathrm{In}_{\text{tot}}$, $\text{monthEndBlocked}=\text{blocked}(D)$, $\text{monthEndBlockedBreakdown}=\text{blockedBreakdown}(D)$. Each `GroupSeries` also carries its own `monthEndBlockedBreakdown` (`engine.ts:374`).
 
+### 7.3 Chart display — "Included pool left" (derived) — **[Derived]**
+Every spend chart (`SpendChart.tsx`) plots the **same depleting** included-pool area labelled **"Included pool left ($)"**, so the enterprise and per-group views tell one consistent story (pool drains → then metered rises). The plotted series is a pure display transform of §7.1 snapshots ($c=\texttt{CREDIT\_USD}=\$0.01$; the engine is unchanged):
+
+- **Enterprise burndown** (`BurndownChart.tsx`): $\text{poolLeft}(d)=\text{poolRemaining}(d)\cdot c=\big(P_{\text{shared}}+\sum_{g:\text{capped}}\text{sub}_g\big)\cdot c$. Bounded in $[0,\,P\cdot c]$ — total remaining included credits.
+- **Per cost center & unassigned** (`CostCenterCharts.tsx`): $\text{poolLeft}_g(d)=C_g\cdot c-\mathrm{In}_g(d)$ — the group's **own funded** included allowance ($C_g$ = its seats' carve-out credits, §3) minus what it has consumed. This is the per-group counterpart of the enterprise burndown and is well-defined for **every** group (unlike the raw per-group $\text{poolRemaining}$, which is `NaN` for groups that share the pool, §7.1):
+  - **Capped CC:** identically equals $\text{sub}_g\cdot c$ — its real AI-credit-pool sub-pool remaining — since $\text{sub}_g=C_g-\mathrm{In}_g/c$ (§6b). So the display coincides with the engine's per-group $\text{poolRemaining}$.
+  - **Group that shares the pool (uncapped CC / unassigned):** the funded-share remaining. It **may dip below 0** when the group draws included credits from the shared pool beyond what its own seats fund — the visual form of the "shared-pool drain" warning (§8 #5). It is *not* a claim that the group starts paying metered at 0 (a shared-pool group keeps drawing free included credits until $P_{\text{shared}}$ empties enterprise-wide).
+
+This introduces **no** new billing rule and changes no engine output — it only unifies how the existing $\text{poolRemaining}$ / $\mathrm{In}_g$ / $C_g$ values are rendered. The capped-CC identity $\text{poolRemaining}\cdot c=C_g\cdot c-\mathrm{In}_g$ is locked by `engine.test.ts` ("pool-left chart identity").
+
 ---
 
 ## 8. Warnings — `engine.ts:398-427`  (diagnostics; not billing formulas)

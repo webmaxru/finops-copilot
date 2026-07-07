@@ -30,7 +30,7 @@ interface SpendChartProps {
   data: SpendPoint[];
   /** Optional current-day marker (omitted now that the dashboard is monthly). */
   day?: number;
-  /** Legend name for the included-credits area (e.g. "Included pool left" vs "Included used"). */
+  /** Legend name for the included-credits area — the depleting "Included pool left ($)" for both the enterprise burndown and each cost center / unassigned group. */
   includedName: string;
   /** Active users — sets the right-axis (blocked users) domain. */
   activeUsers: number;
@@ -79,9 +79,9 @@ function ChartTooltip({ active, payload, label }: TooltipProps<number, string>) 
 
 /**
  * Time-series spend chart shared by the enterprise burndown and each cost
- * center / unassigned group: included ($) and metered ($) as areas, cumulative
- * bill as a line, plus a blocked-users line on a right axis so hard stops are
- * visible against spend.
+ * center / unassigned group: the included pool left ($) and metered ($) as
+ * areas, cumulative bill as a line, plus a blocked-users line on a right axis so
+ * hard stops are visible against spend.
  */
 export default function SpendChart({
   data,
