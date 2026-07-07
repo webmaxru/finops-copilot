@@ -59,6 +59,16 @@ script, and a deploy. Work autonomously; state assumptions instead of asking.
 
 ## Step 3 — Instrument the code
 
+> **Why the JavaScript SDK and NOT the Azure Monitor OpenTelemetry Distro?** A static
+> site is **browser-only (no server)**. Microsoft states the **Application Insights
+> JavaScript SDK is "the supported client-side browser instrumentation path… It doesn't
+> use OpenTelemetry, and customers aren't expected to migrate browser JavaScript
+> monitoring to OpenTelemetry."** The Azure Monitor **OpenTelemetry Distro is server-side
+> only** (ASP.NET Core / Java / Node.js / Python) — it can't run in a browser and doesn't
+> capture Real User Monitoring (page views, sessions, engagement, geo, browser/OS), which
+> is exactly what we need. (learn.microsoft.com — *app-insights-overview* / *javascript-sdk*.)
+> Only reach for the OTel Distro if the project actually has a backend/BFF to instrument.
+
 - `npm i @microsoft/applicationinsights-web`.
 - Create a generic `src/analytics.ts`:
   - `import type { ApplicationInsights }` (type-only, erased) + **dynamic** `await import(...)`
