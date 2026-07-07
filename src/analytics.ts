@@ -1,114 +1,31 @@
-// Client-side product analytics via Azure Application Insights.
+// Client-side product analytics for the simulator, powered by
+// @webmaxru/cookieless-insights (a cookieless beacon — no cookie/GDPR banner).
 //
-// PRIVACY — NO COOKIE / GDPR BANNER REQUIRED
-// ------------------------------------------
-// The SDK is initialized cookieless (`disableCookiesUsage: true`) with the
-// session-storage send buffer disabled (`enableSessionStorageBuffer: false`), so
-// it writes NO cookies and NO localStorage / sessionStorage. There is no
-// persistent client-side identifier, so this instrumentation needs no cookie /
-// consent banner. The client IP is used transiently by Azure to derive coarse
-// geo (city / country) and is not stored on the telemetry.
-//
-// PURITY / SAFETY
-// ---------------
-// This module lives outside the pure model layer: the simulation engine stays a
-// deterministic pure function of its inputs. Analytics is a fire-and-forget side
-// effect and every export is a safe no-op when no connection string is set
-// (local dev / tests) or when running outside a browser. The App Insights SDK is
-// pulled in via a dynamic import() so it is never loaded into the Node/vitest
-// test graph and ships as its own lazy chunk.
+// The Application Insights connection string is a public, client-side ingestion
+// key injected at build time via VITE_APPINSIGHTS_CONNECTION_STRING. Every call
+// is a safe no-op when unconfigured (local dev / tests) or outside a browser, so
+// the simulation engine stays a pure function and analytics is a fire-and-forget
+// side effect.
 
-import type { ApplicationInsights } from '@microsoft/applicationinsights-web';
+import { init, trackEvent, trackChangeDebounced } from '@webmaxru/cookieless-insights';
 
 // --- KILL SWITCH -----------------------------------------------------------
 // Set to `false` to completely disable all analytics/telemetry on the site.
-// (You can also disable it at build time without editing code by setting the
-// env var VITE_ANALYTICS_DISABLED=true — e.g. as a GitHub Actions variable.)
-// When disabled, the SDK is never loaded and no event is ever sent.
 const ANALYTICS_ENABLED = true;
 // ---------------------------------------------------------------------------
 
-const CONNECTION_STRING = import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING;
-
-type EventProps = Record<string, string | number | boolean | undefined>;
-
-let client: ApplicationInsights | null = null;
-let starting = false;
-const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-/**
- * Initialize Application Insights once, on the client, when a connection string
- * is configured and the kill switch (`ANALYTICS_ENABLED`) is on. Safe to call
- * unconditionally; resolves immediately as a no-op in tests / SSR / when
- * unconfigured or disabled.
- */
-export async function initAnalytics(): Promise<void> {
-  if (!ANALYTICS_ENABLED || import.meta.env.VITE_ANALYTICS_DISABLED === 'true') return;
-  if (client || starting) return;
-  if (typeof window === 'undefined' || !CONNECTION_STRING) return;
-  starting = true;
-  try {
-    const { ApplicationInsights } = await import('@microsoft/applicationinsights-web');
-    const instance = new ApplicationInsights({
-      config: {
-        connectionString: CONNECTION_STRING,
-        // Cookieless — no consent banner required.
-        disableCookiesUsage: true,
-        // In-memory send buffer only: no localStorage / sessionStorage either.
-        enableSessionStorageBuffer: false,
-        // Engagement: time spent on the page.
-        autoTrackPageVisitTime: true,
-        // Single-route SPA — we send one explicit page view instead of route hooks.
-        enableAutoRouteTracking: false,
-        // Static site: no backend calls worth tracing. Keeps volume tiny and
-        // avoids adding correlation headers to font / CDN requests.
-        disableAjaxTracking: true,
-        disableFetchTracking: true,
-        // Keep unhandled errors (low volume, high value).
-        enableUnhandledPromiseRejectionTracking: true,
-      },
-    });
-    instance.loadAppInsights();
-    instance.trackPageView(); // initial load
-    client = instance;
-  } catch {
-    /* analytics must never break the app */
-  } finally {
-    starting = false;
-  }
-}
-
-/** Fire a custom event. No-op until/unless analytics is initialized. */
-export function trackEvent(name: string, properties?: EventProps): void {
-  try {
-    client?.trackEvent({ name }, properties);
-  } catch {
-    /* ignore */
-  }
+/** Initialize once, on the client. Safe no-op without a connection string. */
+export function initAnalytics(): void {
+  init({
+    connectionString: import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING ?? '',
+    enabled: ANALYTICS_ENABLED,
+  });
 }
 
 /**
- * Debounced, keyed event — collapses a burst (e.g. dragging a slider or typing
- * in a field) into a single event once activity settles.
- */
-export function trackChangeDebounced(name: string, key: string, delayMs = 700): void {
-  if (!ANALYTICS_ENABLED || typeof window === 'undefined') return;
-  const id = `${name}::${key}`;
-  const existing = debounceTimers.get(id);
-  if (existing) clearTimeout(existing);
-  debounceTimers.set(
-    id,
-    setTimeout(() => {
-      debounceTimers.delete(id);
-      trackEvent(name, { key });
-    }, delayMs),
-  );
-}
-
-/**
- * Named key-event helpers — the single vocabulary of tracked engagement events.
- * Keeping them here (rather than inline string literals across the app) prevents
- * typos and makes the dashboard/query KQL match the code.
+ * Named key-event helpers — the app's engagement vocabulary. Keeping them here
+ * (instead of inline strings across components) prevents typos and keeps the
+ * dashboard / report KQL in sync with the code.
  */
 export const track = {
   scenarioApplied: (scenarioId: string) => trackEvent('Scenario Applied', { scenarioId }),

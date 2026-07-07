@@ -7,6 +7,7 @@ targets:
 dependencies:
   apm:
   - webmaxru/ai-native-dev/skills/agent-package-manager
+  - webmaxru/cookieless-insights/skills/cookieless-insights
   - anthropics/skills/skills/frontend-design
   - webmaxru/ai-native-dev/prompts/seo-and-agent-readiness.prompt.md#main
   mcp: []
