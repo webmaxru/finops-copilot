@@ -20,6 +20,14 @@
 
 import type { ApplicationInsights } from '@microsoft/applicationinsights-web';
 
+// --- KILL SWITCH -----------------------------------------------------------
+// Set to `false` to completely disable all analytics/telemetry on the site.
+// (You can also disable it at build time without editing code by setting the
+// env var VITE_ANALYTICS_DISABLED=true — e.g. as a GitHub Actions variable.)
+// When disabled, the SDK is never loaded and no event is ever sent.
+const ANALYTICS_ENABLED = true;
+// ---------------------------------------------------------------------------
+
 const CONNECTION_STRING = import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING;
 
 type EventProps = Record<string, string | number | boolean | undefined>;
@@ -30,10 +38,12 @@ const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /**
  * Initialize Application Insights once, on the client, when a connection string
- * is configured. Safe to call unconditionally; resolves immediately as a no-op
- * in tests / SSR / when unconfigured.
+ * is configured and the kill switch (`ANALYTICS_ENABLED`) is on. Safe to call
+ * unconditionally; resolves immediately as a no-op in tests / SSR / when
+ * unconfigured or disabled.
  */
 export async function initAnalytics(): Promise<void> {
+  if (!ANALYTICS_ENABLED || import.meta.env.VITE_ANALYTICS_DISABLED === 'true') return;
   if (client || starting) return;
   if (typeof window === 'undefined' || !CONNECTION_STRING) return;
   starting = true;
@@ -82,7 +92,7 @@ export function trackEvent(name: string, properties?: EventProps): void {
  * in a field) into a single event once activity settles.
  */
 export function trackChangeDebounced(name: string, key: string, delayMs = 700): void {
-  if (typeof window === 'undefined') return;
+  if (!ANALYTICS_ENABLED || typeof window === 'undefined') return;
   const id = `${name}::${key}`;
   const existing = debounceTimers.get(id);
   if (existing) clearTimeout(existing);

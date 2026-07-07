@@ -72,11 +72,16 @@ script, and a deploy. Work autonomously; state assumptions instead of asking.
     `enableUnhandledPromiseRejectionTracking: true`.
   - Export `trackEvent(name, props)`, a **debounced** `trackChangeDebounced(name, key)` (≈700 ms,
     for sliders/typing), and a small named `track.*` vocabulary so event names match the dashboard.
+  - Add a **one-line kill switch** at the top: `const ANALYTICS_ENABLED = true` — flip to `false`
+    to disable everything. Gate `initAnalytics()` (and the debounced tracker) on it so the SDK is
+    **tree-shaken out** when off (verify: build with it `false` → no SDK chunk and no connection
+    string in the bundle). Also honor a build-time opt-out `VITE_ANALYTICS_DISABLED=true`.
 - Wire `track.*` into the **store choke point** (one call per mutation) + outbound-link
   `onClick` handlers + a "shared/deep link opened" check at startup. Keep the engine/pure code untouched.
 - Call `initAnalytics()` once from the app entry (`main`/`index`).
 - If `tsc` doesn't already include `vite/client`, add `src/vite-env.d.ts` declaring the
-  `import.meta.env` key so the typecheck passes.
+  `import.meta.env` keys (`VITE_APPINSIGHTS_CONNECTION_STRING`, `VITE_ANALYTICS_DISABLED`) so the
+  typecheck passes.
 
 ## Step 4 — Build-time config & deploy
 
@@ -123,6 +128,7 @@ script, and a deploy. Work autonomously; state assumptions instead of asking.
 - [ ] Cookieless (no cookies/localStorage/sessionStorage, no persistent id) — no banner needed.
 - [ ] Workspace-based App Insights, 30-day retention, 0.16 GB/day cap — free tier.
 - [ ] All key events wired at the choke point; page view + engagement time collected.
+- [ ] One-line kill switch (`ANALYTICS_ENABLED = false`) disables everything and tree-shakes the SDK + connection string out — verified.
 - [ ] Connection string is a repo **variable**; deploy workflow injects it; both build paths verified.
 - [ ] Portal dashboard deployed (Succeeded); every KQL validated.
 - [ ] `npm run analytics` prints the report and `-Open` opens the dashboard.
