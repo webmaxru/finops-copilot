@@ -17,7 +17,7 @@ const ANALYTICS_ENABLED = true;
 /** Initialize once, on the client. Safe no-op without a connection string. */
 export function initAnalytics(): void {
   init({
-    connectionString: import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING ?? '',
+    connectionString: import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING,
     enabled: ANALYTICS_ENABLED,
   });
 }
