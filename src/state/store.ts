@@ -4,6 +4,7 @@ import { DEFAULT_INPUTS, makeDefaultCostCenter, ccBudgetDefaultUsd } from '../mo
 import { getScenario, matchScenarioId } from '../model/scenarios';
 import { runSimulation } from '../model/engine';
 import { readInputsFromLocation, writeInputsToLocation } from './shareConfig';
+import { track } from '../analytics';
 import type { CostCenter, EnterpriseInputs, SimResult } from '../model/types';
 
 export type Theme = 'dark' | 'light';
@@ -37,14 +38,17 @@ interface Store {
   toggleTheme: () => void;
 }
 
-export const useStore = create<Store>((set) => ({
+export const useStore = create<Store>((set, get) => ({
   // Hydrate from a shared-config URL (?c=...) when present, else defaults.
   inputs: readInputsFromLocation() ?? DEFAULT_INPUTS(),
   theme: initialTheme(),
 
-  setInput: (key, value) => set((s) => ({ inputs: { ...s.inputs, [key]: value } })),
+  setInput: (key, value) => {
+    track.inputChanged(String(key));
+    set((s) => ({ inputs: { ...s.inputs, [key]: value } }));
+  },
 
-  addCostCenter: () =>
+  addCostCenter: () => {
     set((s) => {
       const assigned = s.inputs.costCenters.reduce((sum, c) => sum + c.members, 0);
       const remaining = Math.max(0, s.inputs.totalLicenses - assigned);
@@ -54,42 +58,57 @@ export const useStore = create<Store>((set) => ({
       // mirroring the enterprise limit's per-seat default (docs/formulas.md §5.3).
       cc.budgetUsd = ccBudgetDefaultUsd(cc.members);
       return { inputs: { ...s.inputs, costCenters: [...s.inputs.costCenters, cc] } };
-    }),
+    });
+    track.costCenterAdded(get().inputs.costCenters.length);
+  },
 
-  removeCostCenter: (id) =>
+  removeCostCenter: (id) => {
     set((s) => ({
       inputs: { ...s.inputs, costCenters: s.inputs.costCenters.filter((c) => c.id !== id) },
-    })),
+    }));
+    track.costCenterRemoved(get().inputs.costCenters.length);
+  },
 
-  updateCostCenter: (id, patch) =>
+  updateCostCenter: (id, patch) => {
+    Object.keys(patch).forEach((field) => track.costCenterUpdated(field));
     set((s) => ({
       inputs: {
         ...s.inputs,
         costCenters: s.inputs.costCenters.map((c) => (c.id === id ? { ...c, ...patch } : c)),
       },
-    })),
+    }));
+  },
 
-  reshuffle: () => set((s) => ({ inputs: { ...s.inputs, seed: Math.floor(Math.random() * 1e9) } })),
+  reshuffle: () => {
+    track.usageReshuffled();
+    set((s) => ({ inputs: { ...s.inputs, seed: Math.floor(Math.random() * 1e9) } }));
+  },
 
-  reset: () => set({ inputs: DEFAULT_INPUTS() }),
+  reset: () => {
+    track.inputsReset();
+    set({ inputs: DEFAULT_INPUTS() });
+  },
 
   applyInputs: (inputs) => set({ inputs }),
 
   applyScenario: (id) => {
     const scenario = getScenario(id);
-    if (scenario) set({ inputs: scenario.make() });
+    if (scenario) {
+      track.scenarioApplied(id);
+      set({ inputs: scenario.make() });
+    }
   },
 
-  toggleTheme: () =>
-    set((s) => {
-      const theme: Theme = s.theme === 'dark' ? 'light' : 'dark';
-      try {
-        if (typeof localStorage !== 'undefined') localStorage.setItem('theme', theme);
-      } catch {
-        /* ignore */
-      }
-      return { theme };
-    }),
+  toggleTheme: () => {
+    const theme: Theme = get().theme === 'dark' ? 'light' : 'dark';
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', theme);
+    } catch {
+      /* ignore */
+    }
+    track.themeToggled(theme);
+    set({ theme });
+  },
 }));
 
 // Mirror the current configuration into the address bar (history.replaceState)

@@ -1,3 +1,5 @@
+import { track } from '../analytics';
+
 const notes = [
   'AIC = AI Credits — 1 AIC = $0.01 USD',
   'Included per seat: Business 1,900 AIC ($19) · Enterprise 3,900 AIC ($39); promo 3,000/7,000 until Sep 1 2026',
@@ -24,7 +26,12 @@ export default function AssumptionsFooter() {
       </ul>
       <p style={{ margin: 0 }}>
         Built by Maxim Salnikov ·{' '}
-        <a href="https://www.linkedin.com/in/webmax/" target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://www.linkedin.com/in/webmax/"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => track.outboundClick('https://www.linkedin.com/in/webmax/', 'LinkedIn')}
+        >
           LinkedIn
         </a>{' '}
         ·{' '}
@@ -32,6 +39,9 @@ export default function AssumptionsFooter() {
           href="https://github.com/webmaxru/finops-copilot"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() =>
+            track.outboundClick('https://github.com/webmaxru/finops-copilot', 'GitHub repo')
+          }
         >
           GitHub repo
         </a>

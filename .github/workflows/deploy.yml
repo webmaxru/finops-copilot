@@ -26,6 +26,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Public client-side ingestion key (safe in the browser bundle by
+          # design) — provided as a repo Actions variable, not a secret.
+          VITE_APPINSIGHTS_CONNECTION_STRING: ${{ vars.VITE_APPINSIGHTS_CONNECTION_STRING }}
       - uses: actions/configure-pages@v5
         with:
           enablement: true
