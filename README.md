@@ -42,7 +42,7 @@ Every non-USD slider shows its **USD equivalent** live.
 
 ### "Usage variation" explained
 
-How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable while you scrub the timeline — use **Reshuffle usage** to resample).
+How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable across input changes — use **Reshuffle usage** to resample).
 
 ### Quick scenarios & shareable links
 
@@ -124,13 +124,13 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 src/
   model/      pricing constants, types, seeded RNG, formatters, simulation engine (+ tests)
   state/      Zustand store + useSimResult() hook (memoized recompute)
-  components/ GlobalControls, CostCenterList/Card, Timeline, PlayControls,
-              KpiCards, BurndownChart, CostCenterCharts, Warnings, AssumptionsFooter,
-              Slider, Toggle
+  components/ GlobalControls, CostCenterList/Card, ScenarioShortcuts,
+              KpiCards, BurndownChart, SpendChart, CostCenterCharts, Warnings,
+              StatusBar, AssumptionsFooter, Slider, Toggle
 docs/         formal calculation reference (formulas, billing model, engine, citations)
 ```
 
-The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so timeline scrubbing/animation is cheap.
+The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so every component renders from the shared result without recomputing.
 
 ## Calculation documentation
 

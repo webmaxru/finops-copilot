@@ -99,7 +99,7 @@ components:
 
 **Creative North Star: "The Meter"**
 
-This is a precision spend instrument, not a dashboard. Every decision serves one act: reading a bill as it forms. The surface is a deep-ink navy cockpit (`#080b16`) — nearly black, but tinted toward indigo, never neutral gray — over which panels rise through tonal layering rather than shadow. Numbers are the material: they render in ledger-grade tabular monospace so digits never jitter while the day 1→30 simulation animates the included credit pool draining and the metered overage climbing toward a hard limit. The signature element, the bill-composition meter, is a literal gauge — a license segment and a metered segment filling a track against a coral ceiling marker.
+This is a precision spend instrument, not a dashboard. Every decision serves one act: reading a bill as it forms. The surface is a deep-ink navy cockpit (`#080b16`) — nearly black, but tinted toward indigo, never neutral gray — over which panels rise through tonal layering rather than shadow. Numbers are the material: they render in ledger-grade tabular monospace so digits never jitter while the day 1→30 charts trace the included credit pool draining and the metered overage climbing toward a hard limit. The signature element, the bill-composition meter, is a literal gauge — a license segment and a metered segment filling a track against a coral ceiling marker.
 
 The palette is information, not decoration. Five semantic hues carry fixed meaning everywhere they appear: indigo is interactive and the Business tier, violet is the Enterprise tier and power users, teal is the credit pool that drains, amber is the meter that runs, and coral is the limit that blocks. A user learns the vocabulary once and reads every chart, chip, and readout fluently after that.
 
@@ -154,7 +154,7 @@ A deep-ink navy base carrying a five-hue semantic system where every color has o
 - **Label** (IBM Plex Mono 500, 10.5–11px, ls 0.12–0.16em, uppercase): Readout labels, meter scales, status chips, and the single hero eyebrow.
 
 ### Named Rules
-**The Tabular-Numeral Rule.** Any figure that changes during the simulation uses `font-variant-numeric: tabular-nums` in IBM Plex Mono or IBM Plex Sans Condensed, so digits hold their column and never jitter while scrubbing the timeline.
+**The Tabular-Numeral Rule.** Any figure that changes during the simulation uses `font-variant-numeric: tabular-nums` in IBM Plex Mono or IBM Plex Sans Condensed, so digits hold their column and never jitter as inputs change.
 
 **The One-Eyebrow Rule.** The mono uppercase eyebrow is a deliberate, singular instrument label in the hero — plus mono readout labels. It is *not* multiplied above every section; section identity comes from the leading gradient tick, not stacked kickers.
 
@@ -197,7 +197,7 @@ Hybrid, but **tonal-layering first.** Depth comes primarily from the surface ram
 - Full-pill mono chip on a translucent panel with a **pulsing teal dot** (2.4s ease-in-out) signaling a live simulation; over-limit state recolors to coral.
 
 ### The Bill-Composition Meter (signature)
-- A 26px track with a faint 10%-repeating tick pattern. A **license segment** (indigo gradient) and a **metered segment** (amber gradient) fill left-to-right; a 2px **coral ceiling marker** with a soft glow marks the hard limit. Segment widths animate over `0.6s cubic-bezier(0.22, 1, 0.36, 1)` as the day advances. A mono scale sits beneath, turning coral when usage runs over.
+- A 26px track with a faint 10%-repeating tick pattern. A **license segment** (indigo gradient) and a **metered segment** (amber gradient) fill left-to-right; a 2px **coral ceiling marker** with a soft glow marks the hard limit. Segment widths animate over `0.6s cubic-bezier(0.22, 1, 0.36, 1)` as inputs change. A mono scale sits beneath, turning coral when usage runs over.
 
 ## 6. Do's and Don'ts
 

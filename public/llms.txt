@@ -8,7 +8,7 @@ Trust model: every billing rule is validated against official GitHub documentati
 
 ## App
 
-- [Copilot Enterprise Spend Simulator](https://webmaxru.github.io/finops-copilot/): The live tool — enterprise-wide and per-cost-center inputs, an animated 30-day credit-pool burndown and metered-spend chart, KPI readouts, and budget/limit warnings.
+- [Copilot Enterprise Spend Simulator](https://webmaxru.github.io/finops-copilot/): The live tool — enterprise-wide and per-cost-center inputs, a 30-day credit-pool burndown and metered-spend chart, KPI readouts, and budget/limit warnings.
 
 ## Calculation documentation
 

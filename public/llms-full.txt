@@ -65,7 +65,7 @@ Every non-USD slider shows its **USD equivalent** live.
 
 ### "Usage variation" explained
 
-How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable while you scrub the timeline — use **Reshuffle usage** to resample).
+How unevenly usage is spread across developers and days. **0%** = everyone consumes about the same each day (smooth); **higher** = spiky/uneven, so some people and days spike well above average. Higher variation makes individual limits get hit sooner even when the average is unchanged. Modeled as the coefficient of variation of a per-user log-normal daily draw (seeded, so results are stable across input changes — use **Reshuffle usage** to resample).
 
 ### Quick scenarios & shareable links
 
@@ -147,13 +147,13 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 src/
   model/      pricing constants, types, seeded RNG, formatters, simulation engine (+ tests)
   state/      Zustand store + useSimResult() hook (memoized recompute)
-  components/ GlobalControls, CostCenterList/Card, Timeline, PlayControls,
-              KpiCards, BurndownChart, CostCenterCharts, Warnings, AssumptionsFooter,
-              Slider, Toggle
+  components/ GlobalControls, CostCenterList/Card, ScenarioShortcuts,
+              KpiCards, BurndownChart, SpendChart, CostCenterCharts, Warnings,
+              StatusBar, AssumptionsFooter, Slider, Toggle
 docs/         formal calculation reference (formulas, billing model, engine, citations)
 ```
 
-The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so timeline scrubbing/animation is cheap.
+The simulation engine (`src/model/engine.ts`) is a pure, deterministic function of the inputs; the whole 30-day month is computed once per input change and cached, so every component renders from the shared result without recomputing.
 
 ## Calculation documentation
 
@@ -650,7 +650,7 @@ See [`references.md`](./references.md) for the full list. Tags used above: **[B1
 
 # Simulation Engine — data flow & interconnections
 
-How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine is the **pure function** `runSimulation(inputs) → SimResult` in [`src/model/engine.ts`](https://github.com/webmaxru/finops-copilot/blob/main/src/model/engine.ts). It is recomputed once per input change and memoized in `state/store.ts` (`useSimResult`); the timeline day only selects which precomputed snapshot to display and never triggers recomputation.
+How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine is the **pure function** `runSimulation(inputs) → SimResult` in [`src/model/engine.ts`](https://github.com/webmaxru/finops-copilot/blob/main/src/model/engine.ts). It is recomputed once per input change and memoized in `state/store.ts` (`useSimResult`); the charts plot the precomputed daily snapshots directly, and re-renders never trigger recomputation.
 
 ## Dependency graph
 
@@ -709,7 +709,7 @@ graph TD
 
 ## Complexity & performance
 
-One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$ inner iterations (≤ 1000 × 30 = 30k). Each day the blocked-user counts + reason breakdown are tallied in one pass over users into a per-group map, so the recount is $O((A+G)\cdot D)$. All well under a millisecond-scale budget; the month is computed once and cached, so scrubbing/animating the timeline is free.
+One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$ inner iterations (≤ 1000 × 30 = 30k). Each day the blocked-user counts + reason breakdown are tallied in one pass over users into a per-group map, so the recount is $O((A+G)\cdot D)$. All well under a millisecond-scale budget; the month is computed once and cached, so every component renders from the shared result without recomputing.
 
 ## Extension points
 

@@ -1,6 +1,6 @@
 # Simulation Engine — data flow & interconnections
 
-How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine is the **pure function** `runSimulation(inputs) → SimResult` in [`src/model/engine.ts`](https://github.com/webmaxru/finops-copilot/blob/main/src/model/engine.ts). It is recomputed once per input change and memoized in `state/store.ts` (`useSimResult`); the timeline day only selects which precomputed snapshot to display and never triggers recomputation.
+How the [`formulas.md`](./formulas.md) quantities connect end-to-end. The engine is the **pure function** `runSimulation(inputs) → SimResult` in [`src/model/engine.ts`](https://github.com/webmaxru/finops-copilot/blob/main/src/model/engine.ts). It is recomputed once per input change and memoized in `state/store.ts` (`useSimResult`); the charts plot the precomputed daily snapshots directly, and re-renders never trigger recomputation.
 
 ## Dependency graph
 
@@ -59,7 +59,7 @@ graph TD
 
 ## Complexity & performance
 
-One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$ inner iterations (≤ 1000 × 30 = 30k). Each day the blocked-user counts + reason breakdown are tallied in one pass over users into a per-group map, so the recount is $O((A+G)\cdot D)$. All well under a millisecond-scale budget; the month is computed once and cached, so scrubbing/animating the timeline is free.
+One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$ inner iterations (≤ 1000 × 30 = 30k). Each day the blocked-user counts + reason breakdown are tallied in one pass over users into a per-group map, so the recount is $O((A+G)\cdot D)$. All well under a millisecond-scale budget; the month is computed once and cached, so every component renders from the shared result without recomputing.
 
 ## Extension points
 

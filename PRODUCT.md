@@ -10,7 +10,7 @@ Enterprise FinOps analysts, platform / developer-experience admins, and engineer
 
 Their context: GitHub moved Copilot to usage-based billing (AI credits) on June 1, 2026, so a monthly bill is now `fixed license fees + metered usage after the shared included credit pool drains`. That is hard to reason about intuitively, and the real billing console is a risky place to experiment. These users need to validate "what-if" configurations — seat counts, Business/Enterprise plan mix, universal and power-user budgets, per-user limits, and cost-center splits — *before* committing them for real.
 
-The job to be done: answer questions like *"if we buy 100 seats at 70/30, cap people at $50, and split teams into cost centers, what will we actually pay, and who gets blocked?"* — in minutes, without building spreadsheets. The primary on-screen task is: adjust smart-default sliders, add/remove cost centers, then play the animated day 1→30 simulation and read the KPIs, burndown/spend charts, and warnings.
+The job to be done: answer questions like *"if we buy 100 seats at 70/30, cap people at $50, and split teams into cost centers, what will we actually pay, and who gets blocked?"* — in minutes, without building spreadsheets. The primary on-screen task is: adjust smart-default sliders, add/remove cost centers, then read the day 1→30 burndown and spend charts, KPIs, and warnings.
 
 ## Product Purpose
 
@@ -40,12 +40,12 @@ Emotional goal: the calm confidence of reading a well-built gauge. The user shou
 2. **Math and its documentation are one change.** The calculation code (`src/model/**`) and the formal spec in `docs/` never drift — they ship together.
 3. **An instrument, not a dashboard.** Color is information, not decoration: the pool drains (teal), the meter runs (amber), the limit blocks (red), and those meanings stay fixed everywhere they appear.
 4. **Legible under density.** Ledger-grade tabular numerals, live USD equivalents on every credit/percent input, and progressive guidance so the numbers inform rather than overwhelm.
-5. **Deterministic and inspectable.** Same inputs always yield the same result (seeded RNG); the whole 30-day month is computed once so timeline scrubbing and animation are honest and instant.
+5. **Deterministic and inspectable.** Same inputs always yield the same result (seeded RNG); the whole 30-day month is computed once and cached, so every view renders from one shared, honest result.
 
 ## Accessibility & Inclusion
 
 - Target **WCAG 2.1 AA** *(assumption — a sensible default; the codebase already uses contrast-conscious tokens and enforces readable body contrast).* Confirm/adjust the target if a stricter bar is required.
 - **Light and dark themes** with an explicit `color-scheme`; a deep-ink dark theme is the default, with a fully specified light theme.
-- **Reduced motion is honored** via `prefers-reduced-motion` alternatives for reveals and the day-by-day animation.
+- **Reduced motion is honored** via `prefers-reduced-motion` alternatives for reveals and the bill-meter transition.
 - **Meaning is never carried by color alone.** The fixed pool / metered / limit / tier semantics are always paired with labels, legends, or text so the interface remains usable with color-vision deficiencies.
 - **Keyboard and assistive-tech support:** visible `:focus-visible` states and ARIA roles on interactive controls (sliders, toggles, popovers, status regions).
