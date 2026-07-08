@@ -24,7 +24,7 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | Universal ULB (universal user-level budget) | **User-level budget** for normal users — caps a person's *total* (pool + metered) use, **always hard-stops** |
 | Power-user override (number of power users + average power-user budget) | **Individual budget override** — power users get a higher per-user budget that overrides the universal ULB ([power-user override guidance](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides)) |
 | Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
-| Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
+| Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — now in the **billing UI** (and REST API) |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
 | Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits; beyond the cap, usage continues as metered — or stops if the enterprise disables overages (a global policy, not a per-CC setting) — *API-only today* |
 | Stop-usage toggle | Real-world default is **OFF** (alerts only); on here so you can model hard caps |
@@ -114,7 +114,7 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 ## Accuracy & caveats
 
 - A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
-- Two cost-center controls (per-user budget, included-usage cap) are **API-only today** — labeled in the UI.
+- The cost-center **included-usage cap** is **API-only today** (settings UI coming soon) — labeled in the UI. The cost-center **per-user budget** is now available in the billing UI too (and via REST).
 - Promo allowances expire **Sep 1 2026**; model/pricing figures are **as of 2026-07**.
 - Pricing constants live in `src/model/defaults.ts` for easy updates.
 

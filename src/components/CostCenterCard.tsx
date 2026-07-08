@@ -109,12 +109,7 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
 
       <Toggle
         label="Cost center ULB"
-        labelSuffix={
-          <>
-            <NewBadge />
-            <ApiOnlyBadge />
-          </>
-        }
+        labelSuffix={<NewBadge />}
         checked={!cc.userLimitInherit}
         onChange={(v) => setPatch({ userLimitInherit: !v })}
         caption={

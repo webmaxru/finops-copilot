@@ -47,7 +47,7 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | Universal ULB (universal user-level budget) | **User-level budget** for normal users — caps a person's *total* (pool + metered) use, **always hard-stops** |
 | Power-user override (number of power users + average power-user budget) | **Individual budget override** — power users get a higher per-user budget that overrides the universal ULB ([power-user override guidance](https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides)) |
 | Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
-| Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — *API-only today* |
+| Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — now in the **billing UI** (and REST API) |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
 | Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits; beyond the cap, usage continues as metered — or stops if the enterprise disables overages (a global policy, not a per-CC setting) — *API-only today* |
 | Stop-usage toggle | Real-world default is **OFF** (alerts only); on here so you can model hard caps |
@@ -137,7 +137,7 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 ## Accuracy & caveats
 
 - A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
-- Two cost-center controls (per-user budget, included-usage cap) are **API-only today** — labeled in the UI.
+- The cost-center **included-usage cap** is **API-only today** (settings UI coming soon) — labeled in the UI. The cost-center **per-user budget** is now available in the billing UI too (and via REST).
 - Promo allowances expire **Sep 1 2026**; model/pricing figures are **as of 2026-07**.
 - Pricing constants live in `src/model/defaults.ts` for easy updates.
 
@@ -479,6 +479,16 @@ $$\text{poolExhaustedDay}=\min\{d: P_{\text{shared}}\le 0\}\ \text{or null (neve
 $$\text{poolUsedPct}=\min\!\Big(1,\ \frac{\mathrm{In}_{\text{tot}}}{P\cdot c}\Big)\ \ (\text{engine.ts:380})$$
 Month-end values (`engine.ts:442-446`, read from day $D$'s snapshot): $\text{monthEndBill}=F+\mathrm{Me}_{\text{tot}}$, $\text{monthEndMetered}=\mathrm{Me}_{\text{tot}}$, $\text{monthEndIncluded}=\mathrm{In}_{\text{tot}}$, $\text{monthEndBlocked}=\text{blocked}(D)$, $\text{monthEndBlockedBreakdown}=\text{blockedBreakdown}(D)$. Each `GroupSeries` also carries its own `monthEndBlockedBreakdown` (`engine.ts:374`).
 
+### 7.3 Chart display — "Included pool left" (derived) — **[Derived]**
+Every spend chart (`SpendChart.tsx`) plots the **same depleting** included-pool area labelled **"Included pool left ($)"**, so the enterprise and per-group views tell one consistent story (pool drains → then metered rises). The plotted series is a pure display transform of §7.1 snapshots ($c=\texttt{CREDIT\_USD}=\$0.01$; the engine is unchanged):
+
+- **Enterprise burndown** (`BurndownChart.tsx`): $\text{poolLeft}(d)=\text{poolRemaining}(d)\cdot c=\big(P_{\text{shared}}+\sum_{g:\text{capped}}\text{sub}_g\big)\cdot c$. Bounded in $[0,\,P\cdot c]$ — total remaining included credits.
+- **Per cost center & unassigned** (`CostCenterCharts.tsx`): $\text{poolLeft}_g(d)=C_g\cdot c-\mathrm{In}_g(d)$ — the group's **own funded** included allowance ($C_g$ = its seats' carve-out credits, §3) minus what it has consumed. This is the per-group counterpart of the enterprise burndown and is well-defined for **every** group (unlike the raw per-group $\text{poolRemaining}$, which is `NaN` for groups that share the pool, §7.1):
+  - **Capped CC:** identically equals $\text{sub}_g\cdot c$ — its real AI-credit-pool sub-pool remaining — since $\text{sub}_g=C_g-\mathrm{In}_g/c$ (§6b). So the display coincides with the engine's per-group $\text{poolRemaining}$.
+  - **Group that shares the pool (uncapped CC / unassigned):** the funded-share remaining. It **may dip below 0** when the group draws included credits from the shared pool beyond what its own seats fund — the visual form of the "shared-pool drain" warning (§8 #5). It is *not* a claim that the group starts paying metered at 0 (a shared-pool group keeps drawing free included credits until $P_{\text{shared}}$ empties enterprise-wide).
+
+This introduces **no** new billing rule and changes no engine output — it only unifies how the existing $\text{poolRemaining}$ / $\mathrm{In}_g$ / $C_g$ values are rendered. The capped-CC identity $\text{poolRemaining}\cdot c=C_g\cdot c-\mathrm{In}_g$ is locked by `engine.test.ts` ("pool-left chart identity").
+
 ---
 
 ## 8. Warnings — `engine.ts:398-427`  (diagnostics; not billing formulas)
@@ -594,7 +604,7 @@ The enterprise/org **"AI credit paid usage"** policy globally governs whether **
 - A cost center attributes usage to a business unit; it can contain users, enterprise teams, orgs, repos. [B10][B11]
 - **A resource (seat) belongs to only one cost center at a time** — therefore the sum of cost-center members cannot exceed total licenses. [B10] *(This is the rule enforced by the members-slider caps.)*
 - **Cost-center budget** caps that CC's metered charges. [B5]
-- **Cost-center per-user budget** (`multi_user_cost_center`) sets one per-user amount for all members; caps total (pool+metered); **API-only today**. [B12][B9][B4]
+- **Cost-center per-user budget** (`multi_user_cost_center`) sets one per-user amount for all members; caps total (pool+metered) and **always hard-stops**. Available in the **billing UI** (where you manage cost centers and budgets) as well as the REST API — one per-user budget applies to every member, and coverage **auto-syncs as membership changes**. [B12][B19][B9][B4]
 - **Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`)** is an **on/off boolean** on the cost center — the **only** cost-center pool parameter GitHub exposes. It caps a CC's draw from the shared included pool to the credits **its own licenses fund** — GitHub **auto-computes** this amount from each license's included allowance (Business 1,900 / Enterprise 3,900 standard; 3,000 / 7,000 during the promo; the admin enters no number — *"There is no custom amount to enter for this control."*). The cost-centers REST endpoint exposes only this boolean plus the auto-sized `ai_credit_pool_state` (`target_amount`/`current_amount`). **API-only today** (settings UI coming soon). [B13][B8][B10]
 - **What happens _at_ the cap — continue as overage vs. stop — is the enterprise-wide "AI credit paid usage" (overages) policy, _not_ a per-cost-center control.** GitHub's field guide: *"If AI Credit overages are allowed, users can continue after the included pool amount is reached, subject to any other budgets in place. If overages are not allowed, usage stops when the applicable limit is reached."* [B13] The simulator **assumes overages are enabled** (§5.7), so at the cap the leftover spills to metered; it does **not** expose a per-CC block toggle, because none exists. See the **exception note** below.
 
@@ -689,7 +699,7 @@ graph TD
 
 ## Why the ordering matters (interconnections)
 
-- **Included before metered.** Every credit is first taken from the relevant pool ($\text{sub}_g$ for capped CCs, else $P_{\text{shared}}$); only the leftover $\ell$ becomes metered. This is what makes the burn-down chart show the pool draining *before* metered cost appears. (At a cost-center AI-credit-pool cap the leftover spills to metered because overages are assumed enabled, §5.7; whether the cap overages or stops is the global enterprise policy, not a per-CC control — `billing-model.md` §6.) [B1][B13]
+- **Included before metered.** Every credit is first taken from the relevant pool ($\text{sub}_g$ for capped CCs, else $P_{\text{shared}}$); only the leftover $\ell$ becomes metered. This is what makes the burn-down chart show the pool draining *before* metered cost appears. Every chart — the enterprise burndown and each cost center / unassigned group — plots the **same depleting "Included pool left"** area for a consistent story: the enterprise shows total remaining credits, and each group shows its own funded included allowance draining ($C_g\cdot c-\mathrm{In}_g$; = $\text{sub}_g\cdot c$ for a capped CC, and may dip below 0 for a shared-pool group that over-draws — see `formulas.md` §7.3). (At a cost-center AI-credit-pool cap the leftover spills to metered because overages are assumed enabled, §5.7; whether the cap overages or stops is the global enterprise policy, not a per-CC control — `billing-model.md` §6.) [B1][B13]
 - **User limit gates everything.** $U_g$ (a user-level budget) caps a person's **total** pool+metered use and always hard-stops, so it is checked *first* and can prevent both pool draw and metered spend. [B4]
 - **Budgets cap only the metered leg.** $\beta_g$ (CC) and $\beta_E$ (enterprise) are applied inside `ApplyMetered`, i.e. after the pool is exhausted — never limiting pool use. Their `stop` flags decide whether the cap actually blocks or merely would-alert (charges still accrue). [B4][B5][B6]
 - **Enterprise budget can exclude cost centers.** When `enterpriseBudgetExcludesCostCenters` is on, `ApplyMetered` applies $\beta_E$ (and accrues $\mathrm{Me}_E$) only for **non-cost-center** groups; each cost center is then bounded solely by its own $\beta_g$ and spends on top of $\beta_E$. This mirrors GitHub's single **"Exclude cost center usage from this budget"** checkbox on the enterprise budget (one collective toggle over all cost centers, not a per-CC selector). [B18]
@@ -717,7 +727,7 @@ One recompute samples $\approx A\,(1+D)$ log-normal variates and runs $A\cdot D$
 
 # References
 
-Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B18]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07-06 (firsthand fetch of B1–B18) against the June 1 2026 usage-based billing model. **All `docs.github.com` links use the `enterprise-cloud@latest` version** (Copilot Business/Enterprise on GitHub Enterprise Cloud), not the free/pro/team version; product-release notes are on `github.blog/changelog`.
+Every billing rule in these docs is a **[Fact]** backed by an official GitHub source below. Tags `[B1]`–`[B19]` are used throughout [`billing-model.md`](./billing-model.md), [`formulas.md`](./formulas.md), and [`simulation-engine.md`](./simulation-engine.md). Verified 2026-07-06 (firsthand fetch of B1–B18; **B19** added 2026-07-08) against the June 1 2026 usage-based billing model. **All `docs.github.com` links use the `enterprise-cloud@latest` version** (Copilot Business/Enterprise on GitHub Enterprise Cloud), not the free/pro/team version; product-release notes are on `github.blog/changelog`.
 
 | Tag | Establishes | URL |
 |-----|-------------|-----|
@@ -732,13 +742,14 @@ Every billing rule in these docs is a **[Fact]** backed by an official GitHub so
 | **B9** | REST budgets; scope enum: `enterprise`, `organization`, `repository`, `cost_center`, `multi_user_customer`, `multi_user_cost_center`, `user`; AI-credit bundle SKU `ai_credits`; **no** exclude-cost-center field (exclusion is a per-CC concept, [B4]) | https://docs.github.com/en/enterprise-cloud@latest/rest/billing/budgets |
 | **B10** | Cost center concept; **included-usage controls** cap a CC to its own licenses' credits (block vs. overage at the cap follows the enterprise overages policy, **not** a per-CC field); a resource belongs to only one cost center at a time (⇒ Σ members ≤ licenses — the explicit rule is on the *use-cost-centers* how-to, Additional context below) | https://docs.github.com/en/enterprise-cloud@latest/billing/concepts/cost-centers |
 | **B11** | Cost-center allocation/attribution; usage not in a CC bills to the enterprise | https://docs.github.com/en/enterprise-cloud@latest/billing/reference/cost-center-allocation |
-| **B12** | Per-user AI credit budgets for cost centers (API-only) | https://github.blog/changelog/2026-06-30-per-user-ai-credit-budgets-available-for-cost-centers/ |
+| **B12** | Per-user AI credit budgets for cost centers (introduced via REST API; now also in the billing UI — see **B19**) | https://github.blog/changelog/2026-06-30-per-user-ai-credit-budgets-available-for-cost-centers/ |
 | **B13** | Cost centers support an AI credit pool cap: a single `ai_credit_pool_enabled` boolean, auto-sized to the CC's own licenses' included credits (Business 3,000 / Enterprise 7,000 during promo; 1,900/3,900 std). What happens **at** the cap (continue as overage vs. stop) is the enterprise **"AI Credit overages allowed"** policy, **not** a per-CC field. API-only today (settings UI coming soon). *The changelog's "block … or let it continue" wording reads per-CC but refers to that global policy — see the exception note in `billing-model.md` §6.* | https://github.blog/changelog/2026-07-02-cost-centers-now-support-included-usage-caps/ |
 | **B14** | Auto-model-selection −10% discount on model cost (paid plans) | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/models/auto-model-selection |
 | **B15** | Data-residency-enforced requests: **+10%** AI credit consumption (this page covers data residency, not FedRAMP) | https://docs.github.com/en/enterprise-cloud@latest/admin/data-residency/github-copilot-with-data-residency |
 | **B16** | Identify power users and set individual budget overrides (higher per-user budget that overrides the universal budget) | https://docs.github.com/en/enterprise-cloud@latest/copilot/tutorials/budgets/getting-started-with-budget-controls#step-2-identify-your-power-users-and-set-individual-overrides |
 | **B17** | Copilot policies are governance controls in the enterprise **"AI controls"** tab / organization settings (which features, agents, and models users can access) | https://docs.github.com/en/enterprise-cloud@latest/copilot/concepts/policies |
 | **B18** | Enterprise-scoped budgets can **exclude cost-center usage** — a single **"Exclude cost center usage from this budget"** checkbox on the enterprise budget (Preview) that excludes **all** cost-center usage from that budget collectively; each cost center is then bounded only by its own CC budget. Default **includes** CC usage; available via REST and audit-logged | https://github.blog/changelog/2026-01-19-enterprise-scoped-budgets-that-exclude-cost-center-usage-in-public-preview/ |
+| **B19** | Per-user budgets for cost centers are now available in the **billing UI** (GitHub Enterprise Cloud) — the same per-user AI-credit budget control previously REST-API-only (**B12**); add enterprise teams or individual users to a cost center, set **one** per-user budget that applies to everyone in it, and coverage stays in sync as membership changes | https://github.blog/changelog/2026-07-07-per-user-budgets-for-cost-centers-in-the-billing-ui/ |
 
 ## Additional context (not tagged inline)
 

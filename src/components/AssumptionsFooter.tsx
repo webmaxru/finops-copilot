@@ -6,7 +6,8 @@ const notes = [
   'Budgets cap metered usage on top of license fees (max bill = licenses + budget); stop-usage real-world default is OFF',
   'Individual/cost-center per-user limits cap total (pool + metered) and always hard-stop',
   'Code completions & next-edit suggestions are unlimited and NOT billed',
-  'Cost-center per-user budgets and included-usage caps are API-only today (not yet in the billing UI)',
+  'Cost-center per-user budgets are now available in the billing UI (in addition to the REST API)',
+  'Cost-center included-usage caps are API-only today (settings UI coming soon)',
   'Model/pricing figures as of 2026-07; source: official GitHub docs.',
 ];
 
