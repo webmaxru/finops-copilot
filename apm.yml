@@ -10,6 +10,7 @@ dependencies:
   - webmaxru/cookieless-insights/skills/cookieless-insights
   - anthropics/skills/skills/frontend-design
   - webmaxru/ai-native-dev/prompts/seo-and-agent-readiness.prompt.md#main
+  - webmaxru/web-ai-agent-skills/skills/webmcp
   mcp: []
 includes: auto
 scripts: {}

@@ -37,6 +37,19 @@ Every billing rule in these docs is a **[Fact]** backed by an official GitHub so
 
 The simulator splits blocked users by the **binding hard stop** — `userLimit`, `costCenterBudget`, or `enterpriseBudget` (see [`formulas.md`](./formulas.md) §6d, §7.1). This introduces **no new billing rule**: the three stops are the already-cited facts — user-level budgets always hard-stop [B4][B16], and cost-center/enterprise metered-budget "stop usage" flags hard-stop the metered leg [B4][B6]. (A cost-center AI-credit-pool cap does **not** add a fourth reason: whether it blocks or overages is the enterprise overages policy, and the simulator assumes overages enabled, so the cap's excess spills to metered — see `billing-model.md` §6.) Which stop is reported as *the* reason (user limit first, then whichever budget `ApplyMetered` found binding) is a **[Derived]** attribution / modeling choice, surfaced in chart tooltips and the global "Blocked users" KPI. Validated in `src/model/__tests__/engine.test.ts` ("blocked-user reason breakdown").
 
+### WebMCP agent tools — no new billing rule
+
+The two in-browser [WebMCP](https://github.com/webmachinelearning/webmcp) tools the
+site registers for AI agents — `get_spend_forecast` (read) and
+`configure_enterprise_plan` (write) — are an **interface** over the existing
+engine, documented in [`webmcp-tools.md`](./webmcp-tools.md). They read the same
+inputs, run the same pure `runSimulation`, and clamp writes to the **already-cited
+ranges** ([`formulas.md`](./formulas.md) §1–§2, §9); they introduce **no new
+billing rule**. The source for the platform capability itself is the web platform
+(the WebMCP spec and the bundled `webmcp` skill), **not** a GitHub billing fact —
+so it carries no `[B*]` tag. The input/result schemas are validated in
+`src/webmcp/__tests__/tools.test.ts`.
+
 ## Full research report
 
 The exhaustive source-of-truth research (with quotes and freshness notes) that these facts were distilled from is retained in the session workspace:
