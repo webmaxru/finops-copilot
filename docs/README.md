@@ -12,6 +12,7 @@ Formal reference for **every quantity, formula, and dependency** used by the spe
 | [`formulas.md`](./formulas.md) | Every symbol and formula in formal notation, with its code location, a source link, and a **Fact / Assumption** tag. This is the canonical reference. **§2.2 provenance table** classifies every value's **min / max / default** as Asserted / Derived / Documented. |
 | [`simulation-engine.md`](./simulation-engine.md) | The end-to-end algorithm: data flow, group construction, the per-day accounting loop, the budget evaluation order, outputs, and warnings — i.e. *how the formulas interconnect*. |
 | [`references.md`](./references.md) | Consolidated list of every cited GitHub documentation URL. |
+| [`webmcp-tools.md`](./webmcp-tools.md) | The two in-browser **WebMCP** tools the site exposes to AI agents (`get_spend_forecast`, `configure_enterprise_plan`), with their input/result schemas mapped back to the formulas. An interface over the engine — **no new billing rule**. |
 
 ## Source-of-truth legend
 

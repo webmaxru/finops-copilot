@@ -111,6 +111,25 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 ```
 
 
+## AI agents (WebMCP)
+
+Beyond static discovery metadata, the app exposes **live, callable tools** to
+in-browser AI agents via [WebMCP](https://github.com/webmachinelearning/webmcp)
+(the imperative `document.modelContext` API). Two tools are registered at startup:
+
+- **`get_spend_forecast`** *(read-only)* — runs the current configuration and
+  returns the projected month-end bill, metered spend, blocked-user breakdown,
+  pool exhaustion, and per-cost-center rollup.
+- **`configure_enterprise_plan`** *(write)* — sets the top-level enterprise inputs
+  (licenses, Business/Enterprise split, active %, average usage, power users,
+  enterprise budget, promo), clamped to the documented ranges, then returns the
+  recomputed forecast.
+
+Both declare a **result (`outputSchema`)** and return structured output. The
+integration lives in [`src/webmcp/`](./src/webmcp/) and is a pure interface over
+the existing engine — it introduces **no new billing rule**. Full contract and
+schema-to-formula mapping: [`docs/webmcp-tools.md`](./docs/webmcp-tools.md).
+
 ## Accuracy & caveats
 
 - A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
@@ -124,6 +143,7 @@ python scripts/build-llms-full.py     # public/llms-full.txt from README + docs/
 src/
   model/      pricing constants, types, seeded RNG, formatters, simulation engine (+ tests)
   state/      Zustand store + useSimResult() hook (memoized recompute)
+  webmcp/     in-browser WebMCP tools for AI agents (imperative API) (+ tests)
   components/ GlobalControls, CostCenterList/Card, Timeline, PlayControls,
               KpiCards, BurndownChart, CostCenterCharts, Warnings, AssumptionsFooter,
               Slider, Toggle
@@ -141,5 +161,6 @@ Every formula and its interconnections are formally documented in [`docs/`](./do
 - [`docs/billing-model.md`](./docs/billing-model.md) — the GitHub rules the engine is built on (and the documented mechanics it deliberately omits)
 - [`docs/simulation-engine.md`](./docs/simulation-engine.md) — data-flow graph and the end-to-end algorithm
 - [`docs/references.md`](./docs/references.md) — consolidated citation list
+- [`docs/webmcp-tools.md`](./docs/webmcp-tools.md) — the in-browser **WebMCP** tools for AI agents (`get_spend_forecast`, `configure_enterprise_plan`) and their result schemas
 
 > **Contributing:** [`.github/copilot-instructions.md`](./.github/copilot-instructions.md) (and [`AGENTS.md`](./AGENTS.md)) require that any calculation change and its `docs/` update ship together, that website changes update the docs when relevant, and that every change is validated against official GitHub documentation.
