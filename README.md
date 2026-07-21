@@ -26,7 +26,7 @@ This tool lets you quickly validate a few setups — *"if we buy 100 seats at 70
 | Enterprise limit ($, max scales with users) | **Enterprise metered budget** — caps overage **on top of** license fees (`max bill = licenses + budget`) |
 | Cost center: per-user limit | **Cost-center user-level budget** (`multi_user_cost_center`) — now in the **billing UI** (and REST API) |
 | Cost center: metered budget | **Cost-center budget** — caps metered spend for that CC |
-| Cost center: included-usage cap | Auto-sized cap limiting a CC to its own licenses' credits; beyond the cap, usage continues as metered — or stops if the enterprise disables overages (a global policy, not a per-CC setting) — *API-only today* |
+| Cost center: included-usage cap (AI credit pool) | Auto-sized cap limiting a CC to its own licenses' credits; **per cost center**, choose what happens at the cap — **block** further included usage, or continue as **paid overage** (if the enterprise allows overages) — managed in the **billing UI** |
 | Stop-usage toggle | Real-world default is **OFF** (alerts only); on here so you can model hard caps |
 | Code completions / next-edit | **Not billed** — excluded from the model |
 
@@ -36,7 +36,7 @@ Billing facts are sourced from official GitHub documentation; see the research r
 
 **Enterprise (global):** total users with licenses (1–1000), Business/Enterprise ratio, % of seats that actually use Copilot, **average developer monthly usage** (credits, with $ caption), **usage variation**, **universal ULB** ($; default = avg usage, max = 10× avg usage), an **individual budget override for power-users** (**number of power users** 0–total, default 10%; **average power-user budget** $38–$760, default $190 — overrides the ULB), enterprise limit (absolute USD metered budget; max scales with total users), an **"enterprise budget excludes cost-center usage"** toggle, promo-allowances toggle, stop-usage toggle.
 
-**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; beyond the cap, usage continues as metered, or stops if the enterprise disables overages — a global policy, not a per-cost-center choice).
+**Per cost center (add/remove; one pre-created):** members (seats), plan mix, per-user limit, metered budget, stop-usage, and an **AI credit pool** included-usage cap (on/off — limits the CC to its own licenses' credits; when on, a per-cost-center **"stop usage at the cap"** choice sets whether members are **blocked** at the cap or continue as **paid overage** if the enterprise allows overages — all managed in the billing UI).
 
 Every non-USD slider shows its **USD equivalent** live.
 
@@ -133,7 +133,7 @@ schema-to-formula mapping: [`docs/webmcp-tools.md`](./docs/webmcp-tools.md).
 ## Accuracy & caveats
 
 - A **simulator for quick validation**, not an invoice. Usage is entered as credits/$ per developer, not per-token; per-model token pricing is intentionally out of scope to keep the UI simple.
-- The cost-center **included-usage cap** is **API-only today** (settings UI coming soon) — labeled in the UI. The cost-center **per-user budget** is now available in the billing UI too (and via REST).
+- The cost-center **included-usage cap (AI credit pool)** is managed in the **billing UI**; at the cap you choose, **per cost center**, whether to **block** further included usage or continue as **paid overage** (2026-07-20) — surfaced in the UI as the "stop usage at the cap" toggle. The cost-center **per-user budget** is likewise available in the billing UI (and via REST).
 - Promo allowances expire **Sep 1 2026**; model/pricing figures are **as of 2026-07**.
 - Pricing constants live in `src/model/defaults.ts` for easy updates.
 

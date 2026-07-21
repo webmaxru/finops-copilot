@@ -95,10 +95,12 @@ export const SCENARIOS: Scenario[] = [
       costCenters: [
         costCenter(1, 'High usage cost center', 30, 12_000, {
           includedCapEnabled: true,
+          stopUsageIncludedCap: true,
           stopUsageBudget: true,
         }),
         costCenter(2, 'Low usage cost center', 70, 6_000, {
           includedCapEnabled: true,
+          stopUsageIncludedCap: true,
           stopUsageBudget: true,
         }),
       ],
@@ -134,6 +136,7 @@ function canonicalKey(i: EnterpriseInputs): string {
       budgetUsd: c.budgetUsd,
       stopUsageBudget: c.stopUsageBudget,
       includedCapEnabled: c.includedCapEnabled,
+      stopUsageIncludedCap: c.stopUsageIncludedCap,
     })),
   });
 }

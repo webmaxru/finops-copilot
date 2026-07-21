@@ -7,7 +7,7 @@ const notes = [
   'Individual/cost-center per-user limits cap total (pool + metered) and always hard-stop',
   'Code completions & next-edit suggestions are unlimited and NOT billed',
   'Cost-center per-user budgets are now available in the billing UI (in addition to the REST API)',
-  'Cost-center included-usage caps are API-only today (settings UI coming soon)',
+  'Cost-center AI credit pools are now managed in the billing UI, with a per-cost-center choice at the cap: block, or continue as paid overage',
   'Model/pricing figures as of 2026-07; source: official GitHub docs.',
 ];
 

@@ -144,6 +144,9 @@ export function makeDefaultCostCenter(index: number): CostCenter {
     budgetUsd: ccBudgetDefaultUsd(DEFAULT_CC_MEMBERS),
     stopUsageBudget: true,
     includedCapEnabled: false,
+    // At the AI credit pool cap, default to overage (spill to metered), preserving the
+    // simulator's baseline; users opt into blocking. [B20][B4]
+    stopUsageIncludedCap: false,
   };
 }
 

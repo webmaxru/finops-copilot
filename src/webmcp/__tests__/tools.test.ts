@@ -58,7 +58,9 @@ describe('buildForecast', () => {
     const f = buildForecast(DEFAULT_INPUTS());
     expect(f.costCenters).toHaveLength(2);
     const b = f.blockedUsers;
-    expect(b.byUserLimit + b.byCostCenterBudget + b.byEnterpriseBudget).toBe(b.total);
+    expect(b.byUserLimit + b.byIncludedCap + b.byCostCenterBudget + b.byEnterpriseBudget).toBe(b.total);
+    // The new per-CC at-cap choice is surfaced on each cost center.
+    expect(typeof f.costCenters[0].stopUsageAtCap).toBe('boolean');
     expect(f.poolUsedPct).toBeGreaterThanOrEqual(0);
     expect(f.poolUsedPct).toBeLessThanOrEqual(1);
   });
