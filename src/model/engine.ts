@@ -24,6 +24,7 @@ interface GroupState {
   capped: boolean;
   ccBudgetUsd: number | null; // metered budget (null for unassigned)
   stopUsageBudget: boolean;
+  stopUsageIncludedCap: boolean; // at the AI credit pool cap: block (true) vs. overage (false)
   // mutable accumulators
   powerCount: number; // power users in this group (set during population)
   subPool: number;
@@ -43,6 +44,7 @@ interface UserState {
 
 const emptyBreakdown = (): BlockedBreakdown => ({
   userLimit: 0,
+  includedCap: 0,
   costCenterBudget: 0,
   enterpriseBudget: 0,
 });
@@ -61,6 +63,7 @@ interface MakeGroupArgs {
   capped: boolean;
   ccBudgetUsd: number | null;
   stopUsageBudget: boolean;
+  stopUsageIncludedCap: boolean;
 }
 
 function makeGroup(a: MakeGroupArgs): GroupState {
@@ -85,6 +88,7 @@ function makeGroup(a: MakeGroupArgs): GroupState {
     capped: a.capped,
     ccBudgetUsd: a.ccBudgetUsd,
     stopUsageBudget: a.stopUsageBudget,
+    stopUsageIncludedCap: a.stopUsageIncludedCap,
     powerCount: 0,
     subPool: 0,
     includedUsd: 0,
@@ -120,6 +124,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
         capped: cc.includedCapEnabled,
         ccBudgetUsd: cc.budgetUsd,
         stopUsageBudget: cc.stopUsageBudget,
+        stopUsageIncludedCap: cc.stopUsageIncludedCap,
       }),
     );
   }
@@ -138,6 +143,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     capped: false,
     ccBudgetUsd: null,
     stopUsageBudget: inp.stopUsageBudgets,
+    stopUsageIncludedCap: false,
   });
   groups.push(unassigned);
 
@@ -251,23 +257,27 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       let includedUsed = 0;
       let meteredCredits = 0;
       let meteredLimitedBy: 'cc' | 'enterprise' | null = null;
+      let includedCapBlocked = false;
 
       if (g.capped) {
         // AI credit pool cap: the CC draws included credits only from its own
-        // funded sub-pool. Beyond that, usage continues as metered ("overage"),
-        // because the enterprise "AI credit paid usage" (overages) policy is
-        // assumed enabled. Whether the cap blocks or overages is governed by
-        // that GLOBAL enterprise policy — there is NO per-cost-center block/
-        // overage control (the cost-center API exposes only ai_credit_pool_
-        // enabled; see docs/billing-model.md §6). [B13][B8]
+        // funded sub-pool. What happens BEYOND the cap is a per-cost-center choice
+        // (billing UI, 2026-07-20): `stopUsageIncludedCap` on => block members at
+        // the cap (no overage); off => the leftover continues as metered "overage"
+        // (only when the enterprise allows overages — the "AI credit paid usage"
+        // policy, assumed enabled). See docs/billing-model.md §6. [B20][B4][B13][B8]
         const inc = Math.min(spend, g.subPool);
         g.subPool -= inc;
         includedUsed += inc;
         const leftover = spend - inc;
         if (leftover > 0) {
-          const m = applyMetered(g, leftover);
-          meteredCredits = m.credits;
-          meteredLimitedBy = m.limitedBy;
+          if (g.stopUsageIncludedCap) {
+            includedCapBlocked = true; // hard stop at the pool cap
+          } else {
+            const m = applyMetered(g, leftover);
+            meteredCredits = m.credits;
+            meteredLimitedBy = m.limitedBy;
+          }
         }
       } else {
         const inc = Math.min(spend, sharedPool);
@@ -289,19 +299,21 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
       // "Blocked" = the user had unmet demand today because a hard stop cut them
       // off. This covers every hard stop in one condition (spent < desired):
       //   - their own ULB / power-user individual override (spend < desired,
-      //     because room = limit - cum ran out), and/or
+      //     because room = limit - cum ran out),
+      //   - an AI credit pool cap set to "block" at the cap (includedCapBlocked),
+      //     and/or
       //   - a cost-center or enterprise metered-budget stop (when "stop usage"
       //     is on) that could not serve their leftover (spent < spend).
-      // (The AI credit pool cap does not block here: overages are assumed
-      // enabled, so its excess spills to metered. A global "overages off" policy
-      // would block at the pool, but that is not modeled — see §5.7.)
       // Attribute to the binding stop (§6d): the user's own limit takes priority
-      // (their cap stops them regardless of shared budgets); otherwise whichever
-      // metered budget — cost-center or enterprise — cut the leftover.
+      // (their cap stops them regardless of shared budgets); then an included-cap
+      // "block at the cap"; otherwise whichever metered budget — cost-center or
+      // enterprise — cut the leftover.
       if (spent < desired - 1e-9) {
         u.blocked = true;
         if (spend < desired - 1e-9) {
           u.blockReason = 'userLimit';
+        } else if (includedCapBlocked) {
+          u.blockReason = 'includedCap';
         } else if (meteredLimitedBy === 'cc') {
           u.blockReason = 'costCenterBudget';
         } else if (meteredLimitedBy === 'enterprise') {
@@ -368,6 +380,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     poolCredits: g.carveoutCredits,
     licenseValueUsd: g.licenseValueUsd,
     capped: g.capped,
+    capStopsUsage: g.stopUsageIncludedCap,
     days: g.days,
     monthEndMeteredUsd: g.meteredUsd,
     monthEndBlockedUsers: g.days[g.days.length - 1]?.blockedUsers ?? 0,
@@ -389,6 +402,7 @@ export function runSimulation(inp: EnterpriseInputs): SimResult {
     poolCredits,
     licenseValueUsd: licenseFeesUsd,
     capped: false,
+    capStopsUsage: false,
     days: entDays,
     monthEndMeteredUsd: totalMeteredUsd,
     monthEndBlockedUsers: last?.blockedUsers ?? 0,

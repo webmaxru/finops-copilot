@@ -19,8 +19,23 @@ export interface CostCenter {
   budgetUsd: number;
   /** Hard-stop the CC metered budget when reached. */
   stopUsageBudget: boolean;
-  /** Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`): limit this CC's included draw to its own licenses' credits. Beyond the cap, usage continues as metered (overage) or stops, per the enterprise "AI credit paid usage" policy — there is no per-cost-center block/overage control. [B13][B8] */
+  /**
+   * Included-usage cap ("AI credit pool", `ai_credit_pool_enabled`): limit this CC's
+   * included draw to its own licenses' credits (auto-sized; the admin enters no number).
+   * As of the 2026-07-20 billing-UI release you manage this when creating/editing a cost
+   * center and choose, per cost center, what happens AT the cap via `stopUsageIncludedCap`.
+   * [B20][B4][B13][B8]
+   */
   includedCapEnabled: boolean;
+  /**
+   * At the AI credit pool cap: block members (true) or let usage continue as paid overage
+   * (false — the default). Overage only actually occurs when the enterprise allows it (the
+   * "AI credit paid usage" policy, assumed enabled here), so with `false` the leftover spills
+   * to metered. Per-cost-center billing-UI choice added 2026-07-20; the cost-centers REST body
+   * still carries only `ai_credit_pool_enabled` (this choice is set via the budget/spend-control
+   * flow). Ignored when `includedCapEnabled` is false. [B20][B4]
+   */
+  stopUsageIncludedCap: boolean;
 }
 
 /** All inputs that drive the simulation (the engine is a pure fn of this). */
@@ -46,14 +61,16 @@ export interface EnterpriseInputs {
  * blocked). Every blocked user is attributed to exactly one reason, so a
  * breakdown always sums to the total blocked count.
  *   - `userLimit`         — their per-user limit (universal/CC ULB or power-user override)
+ *   - `includedCap`       — a cost-center AI credit pool cap set to "block" at the cap
  *   - `costCenterBudget`  — a cost-center metered-budget stop
  *   - `enterpriseBudget`  — the enterprise metered-budget stop
  */
-export type BlockReason = 'userLimit' | 'costCenterBudget' | 'enterpriseBudget';
+export type BlockReason = 'userLimit' | 'includedCap' | 'costCenterBudget' | 'enterpriseBudget';
 
 /** Blocked-user counts split by the reason they were cut off (§6d, §7.1). */
 export interface BlockedBreakdown {
   userLimit: number;
+  includedCap: number;
   costCenterBudget: number;
   enterpriseBudget: number;
 }
@@ -82,6 +99,7 @@ export interface GroupSeries {
   poolCredits: number; // starting included pool for this group
   licenseValueUsd: number;
   capped: boolean; // included-usage cap active (cost centers only)
+  capStopsUsage: boolean; // at the AI credit pool cap: block (true) vs. overage (false)
   days: DaySnapshot[]; // length 30
   monthEndMeteredUsd: number;
   monthEndBlockedUsers: number;

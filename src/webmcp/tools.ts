@@ -41,6 +41,7 @@ export interface CostCenterForecast {
   meteredUsd: number;
   blockedUsers: number;
   includedCapEnabled: boolean;
+  stopUsageAtCap: boolean;
 }
 
 export interface SpendForecast {
@@ -56,6 +57,7 @@ export interface SpendForecast {
   blockedUsers: {
     total: number;
     byUserLimit: number;
+    byIncludedCap: number;
     byCostCenterBudget: number;
     byEnterpriseBudget: number;
   };
@@ -91,6 +93,7 @@ export function buildForecast(inputs: EnterpriseInputs): SpendForecast {
     blockedUsers: {
       total: r.monthEndBlockedUsers,
       byUserLimit: b.userLimit,
+      byIncludedCap: b.includedCap,
       byCostCenterBudget: b.costCenterBudget,
       byEnterpriseBudget: b.enterpriseBudget,
     },
@@ -103,6 +106,7 @@ export function buildForecast(inputs: EnterpriseInputs): SpendForecast {
       meteredUsd: round2(cc.monthEndMeteredUsd),
       blockedUsers: cc.monthEndBlockedUsers,
       includedCapEnabled: cc.capped,
+      stopUsageAtCap: cc.capStopsUsage,
     })),
     unassigned: {
       seats: r.unassigned.seats,
@@ -154,10 +158,14 @@ const FORECAST_SCHEMA: Record<string, unknown> = {
       properties: {
         total: { type: 'integer' },
         byUserLimit: { type: 'integer' },
+        byIncludedCap: {
+          type: 'integer',
+          description: 'Blocked at a cost-center AI credit pool cap set to "block".',
+        },
         byCostCenterBudget: { type: 'integer' },
         byEnterpriseBudget: { type: 'integer' },
       },
-      required: ['total', 'byUserLimit', 'byCostCenterBudget', 'byEnterpriseBudget'],
+      required: ['total', 'byUserLimit', 'byIncludedCap', 'byCostCenterBudget', 'byEnterpriseBudget'],
     },
     poolExhaustedDay: {
       type: ['integer', 'null'],
@@ -175,8 +183,12 @@ const FORECAST_SCHEMA: Record<string, unknown> = {
           meteredUsd: { type: 'number' },
           blockedUsers: { type: 'integer' },
           includedCapEnabled: { type: 'boolean' },
+          stopUsageAtCap: {
+            type: 'boolean',
+            description: 'When the AI credit pool cap is hit: block members (true) or continue as overage (false).',
+          },
         },
-        required: ['name', 'seats', 'meteredUsd', 'blockedUsers', 'includedCapEnabled'],
+        required: ['name', 'seats', 'meteredUsd', 'blockedUsers', 'includedCapEnabled', 'stopUsageAtCap'],
       },
     },
     unassigned: {

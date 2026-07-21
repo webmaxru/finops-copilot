@@ -50,11 +50,11 @@ month-end spend. `annotations.readOnlyHint = true`; it takes **no input**.
 | `monthEndBillUsd` | number | `licenseFees + metered` | formulas §7 |
 | `maxBillUsd` | number | `licenseFees + enterpriseBudget` (max possible bill) | formulas §5.2 |
 | `enterpriseMeteredBudgetUsd` | number | enterprise metered budget | formulas §5.2 |
-| `blockedUsers` | object | `total` + split `byUserLimit` / `byCostCenterBudget` / `byEnterpriseBudget` | formulas §6d, §7.1 |
+| `blockedUsers` | object | `total` + split `byUserLimit` / `byIncludedCap` / `byCostCenterBudget` / `byEnterpriseBudget` | formulas §6d, §7.1 |
 | `poolExhaustedDay` | integer \| null | day (1–30) the pool ran out, else `null` | formulas §6 |
 | `poolUsedPct` | number | share of the pool consumed by day 30 (0–1) | formulas §7 |
 | `promoAllowancesActive` | boolean | promo included allowances in effect | formulas §1 |
-| `costCenters[]` | array | per-CC `name`, `seats`, `meteredUsd`, `blockedUsers`, `includedCapEnabled` | formulas §5, §6 |
+| `costCenters[]` | array | per-CC `name`, `seats`, `meteredUsd`, `blockedUsers`, `includedCapEnabled`, `stopUsageAtCap` (block vs. overage at the pool cap) | formulas §5, §6 |
 | `unassigned` | object | `seats`, `meteredUsd`, `blockedUsers` for non-CC usage | formulas §5 |
 | `warnings` | string[] | engine warnings | formulas §8 |
 | `summary` | string | one-line human-readable recap | — |

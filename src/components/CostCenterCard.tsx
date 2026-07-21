@@ -9,14 +9,6 @@ interface CostCenterCardProps {
   id: string;
 }
 
-function ApiOnlyBadge() {
-  return (
-    <span className="badge" style={{ marginLeft: 6 }}>
-      API-only today
-    </span>
-  );
-}
-
 function NewBadge() {
   return (
     <span className="badge badge-new" style={{ marginLeft: 6 }}>
@@ -150,21 +142,30 @@ export default function CostCenterCard({ id }: CostCenterCardProps) {
 
       <Toggle
         label="AI credit pool (limit to own licenses)"
-        labelSuffix={
-          <>
-            <NewBadge />
-            <ApiOnlyBadge />
-          </>
-        }
+        labelSuffix={<NewBadge />}
         checked={cc.includedCapEnabled}
         onChange={(v) => setPatch({ includedCapEnabled: v })}
         caption={
           <>
-            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}); beyond
-            it, usage continues as metered — subject to budgets and the enterprise overages policy
+            auto-sized {fmtCredits(series?.poolCredits ?? 0)} ({fmtUsd(series?.licenseValueUsd ?? 0)}); managed in
+            the billing UI when you create or edit this cost center
           </>
         }
       />
+      {cc.includedCapEnabled && (
+        <div className="cc-subtoggle">
+          <Toggle
+            label="Stop usage at the pool cap"
+            checked={cc.stopUsageIncludedCap}
+            onChange={(v) => setPatch({ stopUsageIncludedCap: v })}
+            caption={
+              cc.stopUsageIncludedCap
+                ? 'at the cap, members are blocked — no further included usage'
+                : 'at the cap, usage continues as paid overage — subject to budgets and the enterprise overages policy'
+            }
+          />
+        </div>
+      )}
 
       <div className="cc-result">
         This month: metered {fmtUsd(series?.monthEndMeteredUsd ?? 0)} · blocked{' '}

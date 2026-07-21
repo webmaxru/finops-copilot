@@ -1063,6 +1063,11 @@ input[type='range'].range--ratio::-moz-range-thumb {
   color: var(--accent);
   font-weight: 600;
 }
+.cc-subtoggle {
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 2px solid var(--pool-soft);
+}
 .cc-result {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

@@ -323,10 +323,10 @@ describe('enterprise budget that excludes cost-center usage', () => {
 
 describe('cost-center AI credit pool (included-usage cap)', () => {
   it('limits included draw to the CC own licenses and spills the rest to metered', () => {
-    // No per-CC block/overage control exists; an enabled AI credit pool caps the
+    // With the default at-cap choice (overage), an enabled AI credit pool caps the
     // CC included draw at its own funded credits and the excess continues as
     // metered — governed by the enterprise overages policy (assumed enabled;
-    // §5.7). Budgets set high so they do not bind. [B13][B8]
+    // §5.7). Budgets set high so they do not bind. [B20][B4][B13][B8]
     const cc = {
       ...makeDefaultCostCenter(1),
       members: 10,
@@ -350,6 +350,72 @@ describe('cost-center AI credit pool (included-usage cap)', () => {
     // Own pool = 10*1900 = 19,000 cr = $190 (included cap); the rest spills to metered.
     expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
     expect(r.monthEndMeteredUsd).toBeCloseTo(1710, 0);
+  });
+
+  it('blocks members (no overage) when the pool cap is set to "stop usage"', () => {
+    // Same setup, but the per-cost-center billing-UI choice is "block at the cap"
+    // (stopUsageIncludedCap). The CC still draws its own $190 pool, but the excess
+    // is NOT metered — members are blocked and attributed to `includedCap`.
+    // [B20][B4]
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000, // demand $1,900 >> the $190 own pool
+      includedCapEnabled: true,
+      stopUsageIncludedCap: true,
+      budgetUsd: 5000,
+      stopUsageBudget: true,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 500,
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        costCenters: [cc],
+      }),
+    );
+    // Draws its own $190 pool; the leftover is blocked, not metered.
+    expect(r.monthEndIncludedUsd).toBeCloseTo(190, 0);
+    expect(r.monthEndMeteredUsd).toBeCloseTo(0, 6);
+    // All 10 active users hit the cap and are attributed to the AI credit pool.
+    expect(r.monthEndBlockedUsers).toBe(10);
+    expect(r.monthEndBlockedBreakdown.includedCap).toBe(10);
+    expect(r.monthEndBlockedBreakdown.costCenterBudget).toBe(0);
+    expect(r.monthEndBlockedBreakdown.enterpriseBudget).toBe(0);
+    // The output series exposes the per-CC choice.
+    expect(r.costCenters[0].capStopsUsage).toBe(true);
+  });
+
+  it('a user limit outranks the pool cap in the block attribution', () => {
+    // When both a low ULB and a "block" pool cap would cut the user off, the
+    // user's own limit is the binding stop (§6d priority: userLimit > includedCap).
+    const cc = {
+      ...makeDefaultCostCenter(1),
+      members: 10,
+      avgDevUsageCredits: 19000,
+      includedCapEnabled: true,
+      stopUsageIncludedCap: true,
+      budgetUsd: 5000,
+      stopUsageBudget: true,
+    };
+    const r = runSimulation(
+      base({
+        totalLicenses: 10,
+        bizRatio: 1,
+        activePct: 1,
+        powerUsers: 0,
+        universalUlbUsd: 10, // $10/user hard stop, below the $19 own-pool share
+        usageVariation: 0,
+        stopUsageBudgets: false,
+        costCenters: [cc],
+      }),
+    );
+    expect(r.monthEndBlockedBreakdown.userLimit).toBe(10);
+    expect(r.monthEndBlockedBreakdown.includedCap).toBe(0);
   });
 
   it('a capped high-usage CC does not drain a low-usage CC included pool', () => {
@@ -649,7 +715,7 @@ describe('blocked-user reason breakdown', () => {
     // Both stops appear, and every blocked user maps to exactly one reason.
     expect(bd.costCenterBudget).toBeGreaterThan(0);
     expect(bd.userLimit).toBeGreaterThan(0);
-    expect(bd.userLimit + bd.costCenterBudget + bd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
+    expect(bd.userLimit + bd.includedCap + bd.costCenterBudget + bd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
     // The CC members are attributed to the CC budget; the unassigned to the ULB.
     expect(r.costCenters[0].monthEndBlockedBreakdown.costCenterBudget).toBe(
       r.costCenters[0].monthEndBlockedUsers,
@@ -663,10 +729,10 @@ describe('blocked-user reason breakdown', () => {
     const r = runSimulation(DEFAULT_INPUTS());
     for (const g of [...r.costCenters, r.unassigned, r.enterprise]) {
       const bd = g.monthEndBlockedBreakdown;
-      expect(bd.userLimit + bd.costCenterBudget + bd.enterpriseBudget).toBe(g.monthEndBlockedUsers);
+      expect(bd.userLimit + bd.includedCap + bd.costCenterBudget + bd.enterpriseBudget).toBe(g.monthEndBlockedUsers);
     }
     const ebd = r.monthEndBlockedBreakdown;
-    expect(ebd.userLimit + ebd.costCenterBudget + ebd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
+    expect(ebd.userLimit + ebd.includedCap + ebd.costCenterBudget + ebd.enterpriseBudget).toBe(r.monthEndBlockedUsers);
   });
 });
 
